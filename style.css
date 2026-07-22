@@ -1,0 +1,1737 @@
+/* Systol — hospital-monitor theme. Trace green #16b050 validated against
+   surface #101512 (lightness band, chroma, contrast) — see README.
+
+   Organized by CONTAINER, mirroring index.html:
+     1. design tokens & themes
+     2. base & shared controls
+     3. header            (brand, battery chip, status pill, buttons)
+     4. main / dashboard  (flipbook pages, gutter TOC, hero, chart,
+                           time-in-zones, readings table, intro pages)
+     5. dialogs           (shared shell, settings, device)
+     6. footer
+     7. overlays          (signal banner, audio hint, monitor controls)
+     8. monitor mode
+   Each container's mobile rules live at the END of its own section. */
+
+/* ── Wordmark face — Chakra Petch SemiBold, subset to S/Y/T/O/L ──────────
+   Inlined as a data URI: no CDN request, no build step, no FOUT, and the
+   brand renders identically on Windows/Android where a system stack would
+   resolve to a different face. 1116 bytes. Used only by the wordmark. */
+@font-face {
+  font-family: "Systol Wordmark";
+  src: url(data:font/woff2;base64,AAEAAAAOAIAAAwBgR0RFRgARAAYAAAN0AAAAFkdQT1OYkIyYAAADjAAAAJ5HU1VCLYcabwAABCwAAAAwT1MvMl5AWHwAAAFoAAAAYGNtYXAAywEOAAAB4AAAAExnYXNwAAAAEAAAA2wAAAAIZ2x5ZrVemdsAAAI8AAABBmhlYWQfnH9LAAAA7AAAADZoaGVhBl8BjAAAASQAAAAkaG10eA5LASwAAAHIAAAAGGxvY2EA7gCcAAACLAAAAA5tYXhwAAkAHAAAAUgAAAAgbmFtZQAGAAAAAANEAAAABnBvc3T/uAAyAAADTAAAACAAAQAAAAEAAEku72ZfDzz1AAcD6AAAAADXfmDVAAAAAOaG2tYABQAAAngCvAAAAAcAAgAAAAAAAAABAAAD4P7MAAACtAAFAAUCeAABAAAAAAAAAAAAAAAAAAAABgABAAAABgAcAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQCMwJYAAUAAAKKAlgAAABLAooCWAAAAV4AMgEqAAAAAAcAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAENESyAAwABMAFkD4P7MAAAE4AI2AAAAAQAAAAAB8gK8AAAAIAADAk0AWgIpAEYCtAA8AnUANwJAABQCbAAFAAAAAgAAAAMAAAAUAAMAAQAAABQABAA4AAAACgAIAAIAAgBMAE8AVABZ//8AAABMAE8AUwBZ////tf+z/7D/rAABAAAAAAAAAAAAAAAAAAAAEAAwAFsAbACDAAAAAQBGAAACGgK8AAUAABMzESEVIUZ0AWD+LAK8/adjAAACADwAAAJ4ArwABwAPAAA3ETchFxEHISU3EScjBxEXPHEBWnFx/qYBHjk54jk5cQHacXH+JnFkOAGEODj+fDgAAQA3AAACQwK8ABsAADc1MxUXMzc1JyEnNTchFxUjNScjBxUXIRcVByE3cibaKCf+9mdnATRncifQJycBCmdp/sRnWDUmKIEnZrtnZ1k2JiZ0JmfIaQABABQAAAIsArwABwAAEyM1IRUjESPm0gIY0nQCWWNj/acAAQAFAAACZwK8AAkAABMDMxMzEzMDESP893+xArF/93QBIAGc/tABMP5k/uAAAAAAAAAAAAYAAAADAAAAAAAA/7UAMgAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAf//AA8AAQAAAAwAAAAAAAAAAgABAAEABQABAAAAAQAAAAoAKgA4AANERkxUABRsYXRuABR0aGFpABQABAAAAAD//wABAAAAAWtlcm4ACAAAAAEAAAABAAQAAgAIAAEACAACAEIABAAAAEwATAAFAAUAAP/x//H/kv+XAAAAAAAA//H/4gAAAAAAAP/n/90AAP/x/+cAAAAAAAD/4v/iAAAAAAACAAEAAQAFAAAAAQACAAQAAQACAAMABAAAAAEAAAAKACwALgADREZMVAAUbGF0bgAedGhhaQAeAAQAAAAA//8AAAAAAAAAAAAA) format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: block;
+}
+
+/* ==================================================================
+   1. DESIGN TOKENS & THEMES
+   ================================================================== */
+
+:root {
+  --bg: #000000;                                             /* homepage: pure black */
+  --surface: #0f0f10;                                        /* cards: near-neutral */
+  --panel: color-mix(in srgb, #050507 87%, var(--trace));    /* modals: near-black, faint accent */
+  --grid: #23252b;
+  --grid-strong: #333640;
+  --trace: #16b050;
+  --ink: #e6efe9;
+  --ink-secondary: #9fb3a7;
+  --ink-muted: #7d9081;   /* WCAG AA ≥4.5:1 on bg/surface/panel even at 11–12px labels (10.6.5) */
+  --danger: #d0605a;
+  --hover-tint: rgba(255, 255, 255, 0.05); /* subtle raised-tile on hover; themed so it shows in light mode too (10.7.3) */
+  --zone-light: #16b050;
+  --zone-moderate: #d4a72c;
+  --zone-vigorous: #e0813d;
+  --zone-peak: #e05a52;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --wordmark: "Systol Wordmark", system-ui, sans-serif; /* brand only — see @font-face below */
+  --header-h: 67px; /* pre-JS fallback — app.js §2 syncs this to the real header height */
+  --footer-thin-h: 46px; /* footer's thin row; JS corrects it from the live layout */
+}
+
+/* Accent presets (dark mode) — only the primary accent changes; the zone
+   colors stay semantic. */
+:root[data-accent="blue"]  { --trace: #3a95e0; }
+:root[data-accent="amber"] { --trace: #d9a520; }
+
+/* Light mode palette (validated for ≥3:1 contrast on the light surface). */
+:root[data-theme="light"] {
+  --bg: #ffffff;                                             /* homepage: pure white */
+  --surface: #f6f7f8;                                        /* cards: near-neutral */
+  --panel: color-mix(in srgb, #ffffff 90%, var(--trace));    /* modals: accent-tinted */
+  --grid: #e6e8ea;
+  --grid-strong: #d0d3d6;
+  --ink: #16211b;
+  --ink-secondary: #4c5b53;
+  --ink-muted: #5b6860;   /* WCAG AA ≥4.5:1 on bg/surface/panel even at 11–12px labels (10.6.5) */
+  --danger: #c23c34;
+  --hover-tint: rgba(0, 0, 0, 0.05); /* dark tile on light surfaces (10.7.3) */
+  --zone-light: #128c42;
+  --zone-moderate: #a67c0a;
+  --zone-vigorous: #bd5717;
+  --zone-peak: #cc3a30;
+  --trace: #0e8a3c;
+}
+:root[data-theme="light"][data-accent="blue"]  { --trace: #1f74c0; }
+:root[data-theme="light"][data-accent="amber"] { --trace: #9a6b08; }
+
+/* ==================================================================
+   BREAKPOINT GATES — canonical reference (keep every use in sync)
+   ------------------------------------------------------------------
+   CSS media queries can't read a custom property, so these numbers are
+   repeated across this file AND one matchMedia in app.js §4. This block is
+   the single source of TRUTH; when a gate changes, grep its token and
+   update every site. Paired gates are COMPLEMENTS (≤560 / ≥561, <620 /
+   ≥620) so no width/height ever lands in two layouts at once — that overlap
+   was bug 10.1.1.
+
+     560 / 561  — mobile ↔ desktop-flipbook boundary; 560 IS mobile.
+                   mobile:     @media (max-width: 560px)          [style.css]
+                   flipbook:   (min-width: 561px) and (min-height: 620px)
+                   snap OFF:   (max-width: 560px)                 [app.js §4]
+                   isMobile:   (max-width: 560px)                 [app.js §6]
+     620 / 619  — min viewport HEIGHT for the flipbook.
+                   on:  … and (min-height: 620px)   off: (max-height: 619px)
+                   snap OFF also keys (max-height: 619px)         [app.js §4]
+     1279/1280  — gutter TOC appears (needs side room):
+                   hidden:     @media (max-width: 1279px)
+     1460       — readings table docks in the right gutter:
+                   docked:     @media (min-width: 1460px)  [+ app.js §3 matchMedia]
+     380        — very narrow: connect button shrinks to its icon.
+   Grep: 560px · 561px · 619px · 620px · 1279px · 1460px · 380px
+   (prefers-reduced-motion and display-mode:standalone are feature queries,
+    not numeric gates — no drift risk, not listed above.)
+   ================================================================== */
+
+/* ==================================================================
+   2. BASE & SHARED CONTROLS
+   ================================================================== */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* App-like touch behavior: on touch-primary devices (Android/iOS — where
+   press-and-hold means "select text"), on-screen text is not selectable,
+   like a native app. Inputs keep selection — editing requires it. Desktop
+   pointers are unaffected. -webkit-touch-callout kills iOS's long-press
+   preview bubble on links. */
+/* Native-app parity ONLY when actually running as an app (installed
+   PWA / TWA / WebView — display-mode: standalone), never on the web —
+   browsers, mobile included, keep normal selection and zoom:
+     · no pinch zoom (boot JS also tightens the viewport meta, app.js §10)
+     · press-and-hold selects no text, like a native app — inputs excepted,
+       editing requires selection; -webkit-touch-callout kills iOS's
+       long-press link preview. */
+@media (display-mode: standalone) {
+  html { touch-action: pan-x pan-y; } /* scroll yes, pinch-zoom no */
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  input, textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+button { cursor: pointer; font: 600 13px/1 inherit; }
+button:disabled { opacity: 0.4; cursor: default; }
+
+/* Visually hidden, but present for screen readers (e.g. the zone-change
+   announcer). Standard clip-rect technique — off-layout, never focusable. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Square icon button (header, monitor controls, settings mode toggle). */
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border: 1px solid var(--grid-strong);
+  border-radius: 8px;
+  color: var(--ink-secondary);
+  padding: 8px; /* symmetric — 20px icon inside → 38px square button */
+}
+.icon-btn:hover { background: var(--hover-tint); color: var(--ink); }
+
+/* Small borderless icon button (zone bar's quick clear). */
+.icon-btn-sm {
+  display: flex;
+  background: none;
+  border: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+}
+.icon-btn-sm:hover:not(:disabled) { color: var(--trace); background: var(--hover-tint); }
+.icon-btn-sm:disabled { opacity: 0.3; cursor: default; }
+
+/* Primary connect button (header + device dialog). */
+.btn-connect {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--trace);
+  color: #04170b;
+  border: 1px solid var(--trace);
+  border-radius: 8px; /* unified with icon buttons — was a stray 7px (10.7.2) */
+  padding: 9px 15px;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.btn-connect:hover { box-shadow: 0 0 0 3px color-mix(in srgb, var(--trace) 22%, transparent); }
+.btn-connect .btn-ico { width: 15px; height: 15px; }
+/* Connected → the button's job is now "Disconnect": go quiet red-outline. */
+.btn-connect.connected {
+  background: transparent;
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.btn-connect.connected:hover { box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 18%, transparent); }
+
+/* Outline / ghost / danger button family (dialogs). */
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--grid-strong);
+  border-radius: 8px; /* unified with icon buttons — was a stray 7px (10.7.2) */
+  color: var(--ink);
+  font: 600 13px/1 inherit;
+  padding: 9px 14px;
+  cursor: pointer;
+}
+.btn-outline:hover:not(:disabled) { color: var(--trace); border-color: var(--trace); }
+.btn-outline:disabled { opacity: 0.4; cursor: default; }
+
+.btn-ghost {
+  flex: none;
+  background: none;
+  border: 1px solid var(--grid-strong);
+  border-radius: 6px;
+  color: var(--ink-secondary);
+  font: 600 13px/1 inherit;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.btn-ghost:hover { color: var(--ink); }
+
+.btn-danger {
+  flex: none;
+  background: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  color: #fff;
+  font: 600 13px/1 inherit;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.btn-danger:disabled { opacity: 0.4; cursor: default; }
+
+.btn-danger-outline {
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--danger);
+  border-radius: 8px; /* unified with icon buttons — was a stray 7px (10.7.2) */
+  color: var(--danger);
+  font: 600 13px/1 inherit;
+  padding: 9px 16px;
+  cursor: pointer;
+}
+.btn-danger-outline:hover:not(:disabled) { background: rgba(208, 96, 90, 0.1); }
+.btn-danger-outline:disabled { opacity: 0.35; cursor: default; border-color: var(--grid-strong); color: var(--ink-muted); }
+
+/* Quiet uppercase text button (settings "Reset"). */
+.link-btn {
+  background: transparent;
+  border: none;
+  color: var(--ink-muted);
+  font: 600 11px/1 inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.link-btn:hover { color: var(--trace); }
+
+/* ==================================================================
+   3. HEADER — brand · battery chip · status pill · header buttons
+   ================================================================== */
+
+header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 22px;
+  border-bottom: 1px solid transparent; /* flush by default */
+  background: var(--bg);
+  transition: border-color 0.2s ease;
+}
+header.scrolled { border-bottom-color: var(--grid); } /* hairline seam appears on scroll */
+
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; cursor: pointer; }
+.brand:focus-visible { outline: 2px solid var(--trace); outline-offset: 4px; border-radius: 6px; }
+.brand h1 {
+  font-family: var(--wordmark);
+  font-size: 17px;
+  letter-spacing: 0.30em; /* tuned for Chakra Petch; 0.35em suited the old face */
+  font-weight: 600;
+}
+/* The mark's ink fills only ~51% of its 48x48 canvas, so 28px renders about
+   14px tall — deliberately larger than the 11px cap-height beside it. Inherits
+   --trace, so it follows the accent setting like everything else. */
+.brand-mark {
+  display: block;
+  color: var(--trace);
+  flex: none;
+}
+
+.controls { display: flex; align-items: center; gap: 14px; }
+
+/* Live BPM in the header (desktop only) — hidden until the hero BPM scrolls off
+   (JS adds .show). Collapses its own width when hidden so it leaves no gap;
+   revealing expands + fades it in, pushing nothing on the right (the group is
+   right-anchored). The mini heart is zone-colored and beats at the real tempo. */
+.header-bpm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateX(-4px);
+  transition: max-width 0.35s ease, opacity 0.28s ease, transform 0.35s ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.header-bpm.show { max-width: 6em; opacity: 1; transform: none; }
+.header-bpm .header-heart { width: 15px; height: 15px; display: inline-flex; flex: none; color: var(--trace); }
+.header-bpm .header-heart svg { width: 100%; height: 100%; }
+.header-bpm .header-heart.beating { animation: heartbeat var(--beat-dur, 1s) ease-in-out infinite; }
+/* zone drives the heart color only (the number stays neutral for legibility) */
+.header-bpm[data-zone="light"]    .header-heart { color: var(--zone-light); }
+.header-bpm[data-zone="moderate"] .header-heart { color: var(--zone-moderate); }
+.header-bpm[data-zone="vigorous"] .header-heart { color: var(--zone-vigorous); }
+.header-bpm[data-zone="peak"]     .header-heart { color: var(--zone-peak); }
+
+/* Battery chip — shown only when the connected device reports a level. */
+.battery-chip {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-secondary);
+}
+.battery-chip[hidden] { display: none; }
+.battery-chip.low { color: var(--danger); }
+
+/* Status pill with an analog-style LED: a colored core plus a soft radial
+   halo (box-shadow glow) whose color is driven by the data-state. */
+/* Styled like the icon buttons so the header controls read as one set. */
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-secondary);
+  cursor: pointer;
+  background: var(--bg);
+  border: 1px solid var(--grid-strong);
+  border-radius: 8px;
+  padding: 10px 12px; /* ~38px tall, matching the icon buttons */
+}
+.status:hover { background: var(--hover-tint); }
+.status:focus-visible { outline: 2px solid var(--trace); outline-offset: 1px; }
+.status-text { font-variant-numeric: tabular-nums; }
+.led {
+  --led: var(--ink-muted);
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--led);
+  box-shadow: 0 0 6px 1px var(--led), inset 0 0 2px rgba(255, 255, 255, 0.5);
+  flex: none;
+}
+.status[data-state="idle"] .led { --led: var(--ink-muted); }
+.status[data-state="error"] .led { --led: var(--danger); }
+.status[data-state="connecting"] .led { --led: var(--zone-moderate); animation: led-blink 0.9s steps(1) infinite; }
+.status[data-state="live"] { color: var(--trace); }
+.status[data-state="live"] .led { --led: var(--trace); animation: led-throb 1.6s ease-in-out infinite; }
+
+@keyframes led-throb {
+  0%, 100% { box-shadow: 0 0 5px 1px var(--led), inset 0 0 2px rgba(255,255,255,0.5); }
+  50%      { box-shadow: 0 0 11px 3px var(--led), inset 0 0 2px rgba(255,255,255,0.6); }
+}
+@keyframes led-blink {
+  0%, 49%   { opacity: 1; }
+  50%, 100% { opacity: 0.25; }
+}
+
+/* Device (Bluetooth) button — mobile only; its color reflects connection. */
+.device-btn { display: none; }
+.device-btn[data-state="live"] { color: var(--trace); border-color: var(--trace); }
+.device-btn[data-state="connecting"] { color: var(--zone-moderate); border-color: var(--zone-moderate); }
+.device-btn[data-state="error"] { color: var(--danger); border-color: var(--danger); }
+
+/* --- header · mobile ---
+   No header bar: "PULSE" scrolls with the page as body content, while the
+   Bluetooth and Settings icons stay pinned in the top corners. */
+@media (max-width: 560px) {
+  header {
+    position: static;
+    display: block;
+    padding: 20px 16px 0;
+    border-bottom: none;
+    background: none;
+    text-align: center;
+  }
+  .brand { justify-content: center; }
+  .brand h1 { font-size: 15px; letter-spacing: 0.3em; }
+  .controls { display: contents; }
+  .status, #monitorBtn, #connectBtn { display: none; }
+  .device-btn, #settingsBtn {
+    position: fixed;
+    top: 12px;
+    z-index: 40;
+    background: var(--bg);
+  }
+  .device-btn { display: flex; left: 12px; }
+  #settingsBtn { right: 12px; }
+  .battery-chip { position: fixed; top: 12px; left: 58px; height: 38px; z-index: 40; }
+}
+
+@media (max-width: 380px) {
+  /* very narrow: shrink the connect button to its icon */
+  #connectLabel { display: none; }
+  .btn-connect { padding: 9px 11px; }
+}
+
+/* ==================================================================
+   4. MAIN / DASHBOARD — flipbook pages · gutter TOC · hero · chart ·
+      time-in-zones · readings table · scroll hints · intro pages
+   ================================================================== */
+
+main {
+  flex: 1;
+  width: min(960px, 100%);
+  margin: 0 auto;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Unsupported-browser banner. */
+.banner {
+  background: rgba(208, 96, 90, 0.12);
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+/* --- main · flipbook pages ---
+   Each .page is one full-viewport "page" of the vertical flipbook, minus
+   the sticky header that stays overlaid on all of them. Page 1 is the
+   dashboard; the intro pages follow. min-height (not height) so a page
+   whose content outgrows the viewport just gets taller. Snapping is a
+   separate concern (app.js) — these are plain sections until it lands. */
+.page {
+  position: relative; /* anchors each page's scroll hint at its bottom edge */
+  min-height: calc(100dvh - var(--header-h));
+  scroll-margin-top: var(--header-h); /* anchor jumps land BELOW the sticky header */
+}
+
+/* The LAST page is one footer-thin-row shorter, so at its rest the footer's
+   first line shows at the fold and the rest of the footer sits just below,
+   revealed by scrolling (app.js §4 treats it as a mini page). Only where
+   the flipbook is on — elsewhere pages stay natural/full height. 22px is
+   main's bottom padding, sitting between the page and the footer. */
+@media (min-width: 561px) and (min-height: 620px) {
+  main > .page:last-of-type {
+    min-height: calc(100dvh - var(--header-h) - var(--footer-thin-h) - 22px);
+  }
+}
+
+/* TOC clicks (and any anchor navigation) glide — unless the OS asks for
+   reduced motion, in which case they jump instantly. */
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+
+/* --- main · left-gutter TOC ---
+   Fixed page navigation beside the content column: JS (app.js §4) aligns
+   its top with the hero and its right edge with the column's left edge.
+   Hidden when there's no gutter to sit in, and in monitor mode (§8). */
+.toc {
+  position: fixed;
+  left: 18px;   /* placeholder — JS positions both axes */
+  top: 89px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+}
+.toc-title {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink-muted);
+  margin: 0 0 8px 12px;
+}
+.toc a {
+  color: var(--ink-muted);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-left: 2px solid var(--grid-strong);
+  transition: color 0.2s, border-color 0.2s;
+}
+.toc a:hover { color: var(--ink); }
+.toc a.active { color: var(--trace); border-left-color: var(--trace); }
+.toc a:focus-visible { outline: 2px solid var(--trace); outline-offset: 2px; border-radius: 4px; } /* keyboard ring, matching brand/hint/back-to-top (10.6.4) */
+@media (max-width: 1279px) { .toc { display: none; } }
+
+/* Dashboard container: hero + dash-body. dash-body groups the chart,
+   zone bar, and readings table as one re-anchorable unit. */
+.dashboard { display: flex; flex-direction: column; gap: 18px; }
+/* dash-body is also the positioning anchor for the gutter-docked table. */
+.dash-body { position: relative; display: flex; flex-direction: column; gap: 18px; }
+
+/* --- dashboard · hero (big BPM, heart, zone label, side stats) --- */
+.hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+/* Bottom-align the BPM/zone stack to the big number so the zone label sits
+   flush with the number's base and "BPM" rides up. */
+.bpm-block { display: flex; align-items: flex-end; gap: 12px; }
+.bpm-side { display: flex; flex-direction: column; gap: 6px; padding-bottom: 12px; }
+
+/* Zone coloring: the block's data-zone attribute drives number, heart, label */
+.bpm-block[data-zone="light"] .bpm-value,
+.bpm-block[data-zone="light"] .heart,
+.bpm-block[data-zone="light"] .zone-label,
+.bpm-block[data-zone="light"] .target-badge { color: var(--zone-light); }
+.bpm-block[data-zone="moderate"] .bpm-value,
+.bpm-block[data-zone="moderate"] .heart,
+.bpm-block[data-zone="moderate"] .zone-label,
+.bpm-block[data-zone="moderate"] .target-badge { color: var(--zone-moderate); }
+.bpm-block[data-zone="vigorous"] .bpm-value,
+.bpm-block[data-zone="vigorous"] .heart,
+.bpm-block[data-zone="vigorous"] .zone-label,
+.bpm-block[data-zone="vigorous"] .target-badge { color: var(--zone-vigorous); }
+.bpm-block[data-zone="peak"] .bpm-value,
+.bpm-block[data-zone="peak"] .heart,
+.bpm-block[data-zone="peak"] .zone-label,
+.bpm-block[data-zone="peak"] .target-badge { color: var(--zone-peak); }
+
+.zone-label {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+.target-badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.target-badge[hidden] { display: none; }
+
+/* Transition flash: green glow entering the target zone, red leaving it. */
+.bpm-block.alert-enter { animation: alert-flash-in 0.8s ease-out; }
+.bpm-block.alert-leave { animation: alert-flash-out 0.8s ease-out; }
+@keyframes alert-flash-in {
+  0% { filter: drop-shadow(0 0 0 transparent); }
+  25% { filter: drop-shadow(0 0 16px var(--trace)); }
+  100% { filter: drop-shadow(0 0 0 transparent); }
+}
+@keyframes alert-flash-out {
+  0% { filter: drop-shadow(0 0 0 transparent); }
+  25% { filter: drop-shadow(0 0 16px var(--danger)); }
+  100% { filter: drop-shadow(0 0 0 transparent); }
+}
+
+.bpm-value {
+  font-family: var(--mono);
+  font-size: clamp(64px, 14vw, 118px);
+  font-weight: 700;
+  color: var(--trace);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.bpm-value.empty { color: var(--ink-muted); font-weight: 200; }
+
+.bpm-unit {
+  font-size: 18px;
+  color: var(--ink-secondary);
+  letter-spacing: 0.15em;
+}
+
+/* Outer wrapper carries the BPM-driven SIZE; inner heart carries the BEAT.
+   Nesting composes the two transforms so they never conflict. */
+.heart-size {
+  display: inline-block;
+  vertical-align: -4px;
+  transform: scale(var(--size, 1));
+  transform-origin: center;
+  transition: transform 0.5s ease; /* smooth grow/shrink as BPM changes */
+}
+.heart {
+  display: block;
+  color: var(--trace);
+  width: 20px;
+  height: 20px;
+  transform-origin: center;
+}
+/* Continuous beat; JS sets --beat-dur = one cardiac cycle (60 / bpm). */
+.heart.beating { animation: heartbeat var(--beat-dur, 1s) ease-in-out infinite; }
+@keyframes heartbeat {
+  0%   { transform: scale(1); }
+  12%  { transform: scale(1.28); } /* "lub" — sharp squeeze */
+  24%  { transform: scale(1.04); }
+  36%  { transform: scale(1.16); } /* "dub" — softer second */
+  50%  { transform: scale(1); }
+  100% { transform: scale(1); }    /* rest of the cycle: still */
+}
+
+.side-stats { display: flex; gap: 22px; padding-bottom: 8px; position: relative; } /* anchor for the desktop demo-home button */
+.stat { display: flex; flex-direction: column; gap: 3px; }
+
+/* Demo-only "Exit demo" button (shown via body[data-demo], app.js §10). On
+   desktop it floats in the empty space above the bottom-aligned stats, right
+   edge; on mobile it falls into the stats grid's spare cell (see mobile rules). */
+.demo-home { display: none; }
+body[data-demo] .demo-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  text-decoration: none;
+  border: 1px solid var(--grid-strong);
+  border-radius: 8px;
+  padding: 6px 11px;
+  white-space: nowrap;
+}
+.demo-home svg { width: 14px; height: 14px; }
+.demo-home:hover { color: var(--ink); background: var(--hover-tint); }
+.demo-home:focus-visible { outline: 2px solid var(--trace); outline-offset: 2px; }
+.stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-muted);
+}
+.stat-value {
+  font-family: var(--mono);
+  font-size: 20px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- dashboard · chart --- */
+.chart-wrap {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--grid);
+  border-radius: 10px;
+  height: 320px;
+  overflow: hidden;
+}
+
+/* Absolutely positioned so the canvas's intrinsic size (its backing store,
+   which resizeCanvas sets from the PREVIOUS layout) can't feed back into
+   flex sizing — in monitor mode that loop settled the page ~77px past the
+   viewport and clipped the BPM number / zone bar. */
+#chart { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; }
+
+/* Chart's expand-to-monitor button (mobile only; desktop uses the header). */
+.chart-expand {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel);
+  border: 1px solid var(--grid-strong);
+  border-radius: 8px;
+  color: var(--ink-secondary);
+  padding: 8px;
+  cursor: pointer;
+}
+.chart-expand:hover { color: var(--ink); }
+body.monitor .chart-expand { display: none; } /* in monitor mode, only the exit button shows */
+
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--panel);
+  border: 1px solid var(--grid-strong);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.tooltip .t-muted { color: var(--ink-muted); }
+
+/* --- dashboard · time-in-zones (stacked bar from real session data) --- */
+.zonebar-wrap {
+  background: var(--surface);
+  border: 1px solid var(--grid);
+  border-radius: 10px;
+  padding: 16px 18px 18px;
+}
+.zonebar-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+.zonebar-head h2 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-secondary);
+}
+.zonebar-total {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+.zonebar-head-right { display: flex; align-items: center; gap: 12px; }
+
+.zonebar {
+  position: relative;
+  display: flex;
+  gap: 2px; /* surface gap between stacked segments */
+  height: 34px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--panel);
+}
+.zoneseg {
+  width: 0;
+  transition: width 0.4s ease;
+  min-width: 0;
+}
+.zoneseg[data-zone="light"] { background: var(--zone-light); }
+.zoneseg[data-zone="moderate"] { background: var(--zone-moderate); }
+.zoneseg[data-zone="vigorous"] { background: var(--zone-vigorous); }
+.zoneseg[data-zone="peak"] { background: var(--zone-peak); }
+
+.zonebar-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.zonebar-empty[hidden] { display: none; }
+
+.zonelegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--ink-secondary);
+}
+.legitem { display: flex; align-items: center; gap: 7px; }
+.legitem b { font-family: var(--mono); color: var(--ink); font-weight: 500; }
+.legdot { width: 9px; height: 9px; border-radius: 50%; }
+.legdot[data-zone="light"] { background: var(--zone-light); }
+.legdot[data-zone="moderate"] { background: var(--zone-moderate); }
+.legdot[data-zone="vigorous"] { background: var(--zone-vigorous); }
+.legdot[data-zone="peak"] { background: var(--zone-peak); }
+
+/* --- dashboard · readings table ---
+   (Kept adjacent to the other dashboard cards; the flipbook-level scroll
+   hints and intro pages follow, matching DOM order.) */
+/* Given its own surface (like the chart and zone panels) so the readings sit
+   on a clean field — mono digits over the background dot grid are hard to
+   scan. Opaque rather than translucent: this is a data readout, and letting
+   texture through defeats the point. */
+.table-view {
+  color: var(--ink-secondary); font-size: 13px;
+  background: var(--surface);
+  border: 1px solid var(--grid);
+  border-radius: 10px;
+  padding: 6px 14px 10px;
+}
+.table-view summary { cursor: pointer; padding: 4px 0; }
+.table-view[open] summary { margin-bottom: 2px; }
+.table-scroll { overflow-x: auto; margin-top: 8px; }
+table { border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
+th, td { text-align: left; padding: 4px 16px 4px 0; border-bottom: 1px solid var(--grid); }
+th { color: var(--ink-muted); font-weight: 500; }
+
+/* Wide screens: dock the table in the RIGHT GUTTER beside dash-body — top
+   aligned with the chart, bottom flush with the zone bar (the full
+   dash-body height), rows scrolling inside. Out of flow, so expanding it
+   never moves the page boundaries. Geometry: 230px + 26px gap off the
+   916px content row leaves ≥16px to the viewport edge at 1460px.
+   <details> can't be a flex container and % heights don't resolve inside
+   it, so the scroll area is pinned absolutely below the summary row. */
+@media (min-width: 1460px) {
+  .dash-body .table-view {
+    position: absolute;
+    left: calc(100% + 26px);
+    top: 0;
+    bottom: 0;
+    width: 230px;
+    overflow: hidden;
+  }
+  .dash-body .table-scroll {
+    position: absolute;
+    top: 40px;  /* below the summary row, incl. the panel's top padding */
+    bottom: 10px;
+    left: 14px;
+    right: 14px;
+    margin-top: 0;
+    overflow-y: auto;
+  }
+  /* Tighter cell padding so three columns read comfortably at 230px. */
+  .dash-body .table-view th,
+  .dash-body .table-view td { padding-right: 12px; }
+}
+
+/* --- main · scroll-down hints ---
+   Every page except the last bounces one at its bottom edge; clicking
+   glides to the next page (plain anchor — same mechanics as the TOC;
+   targets wired dynamically in app.js §4). Anchored to the section, so it
+   scrolls away with its page and sits below in-flow expanded content.
+   bottom: 34px keeps it fully visible at rest — page 1 overhangs the fold
+   by its 22px breathing room, and the bounce dips another 8. Hidden where
+   the flipbook is off (small screens, monitor mode §8); shown but static
+   under reduced motion. */
+.scroll-hint {
+  position: absolute;
+  bottom: 34px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  animation: hint-bounce 1.8s ease-in-out infinite;
+}
+.scroll-hint:hover { color: var(--ink); }
+.scroll-hint:focus-visible { outline: 2px solid var(--trace); outline-offset: 3px; border-radius: 6px; }
+@keyframes hint-bounce {
+  0%, 100% { transform: translate(-50%, 0); }
+  50%      { transform: translate(-50%, 8px); }
+}
+@media (max-width: 560px), (max-height: 619px) {
+  .scroll-hint { display: none; } /* flipbook is off here */
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-hint { animation: none; }
+}
+
+/* --- main · intro pages (pages 2+) ---
+   Centered, self-contained statements. COPY IS PLACEHOLDER — structure
+   only; final content is being written separately. */
+.intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  text-align: center;
+  padding: 40px 0;
+}
+.intro-title { font-size: clamp(26px, 5vw, 40px); }
+.intro-title span { color: var(--trace); }
+.intro-lede {
+  max-width: 560px;
+  color: var(--ink-secondary);
+  line-height: 1.7;
+  font-size: 15px;
+}
+/* Secondary line under an intro title (sits tighter than the lede). */
+.intro-sub {
+  max-width: 560px;
+  color: var(--ink-secondary);
+  font-size: 14.5px;
+  line-height: 1.6;
+  margin-top: 8px;
+}
+/* "No sensor? Try the demo first." — the demo off-ramp on the intro page. */
+.intro-demo-line { margin-top: 16px; font-size: 14px; color: var(--ink-muted); }
+.intro-demo-line a { color: var(--trace); font-weight: 600; text-decoration: none; }
+.intro-demo-line a:hover { text-decoration: underline; }
+.intro-cards { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+.intro-card {
+  width: 200px;
+  background: var(--surface);
+  border: 1px solid var(--grid);
+  border-radius: 10px;
+  padding: 18px 16px;
+  font-size: 13px;
+  color: var(--ink-secondary);
+  line-height: 1.5;
+  text-align: left;
+}
+.intro-card b { display: block; color: var(--ink); margin-bottom: 6px; font-size: 14px; }
+
+/* ===================================================================
+   COMPATIBLE DEVICES (page 4) — browser logos + install badges
+   ===================================================================
+   Two logo rows. Each is STATIC and centered whenever every icon fits
+   the current width; the marquee engages ONLY on overflow (app.js §11
+   adds .is-scrolling): browsers drift left, badges drift right. The
+   .dupe items exist purely to make that loop seamless and stay hidden
+   while static, so no icon ever appears twice at rest. */
+.compat-marquees { width: min(1100px, 100%); display: flex; flex-direction: column; gap: 18px; margin-top: 10px; }
+.marquee { overflow: hidden; padding: 16px 0; }   /* room for the hover lift/backlight */
+.marquee-track { display: flex; gap: 38px; width: 100%; align-items: center; justify-content: center; flex-wrap: wrap; }
+.marquee.ltr .marquee-track { gap: 22px; }        /* store badges are wide; tighter gap reads better */
+.marquee:not(.is-scrolling) .marquee-track > .dupe { display: none; }
+.marquee.is-scrolling {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+}
+.marquee.is-scrolling .marquee-track { flex-wrap: nowrap; justify-content: flex-start; width: max-content; }
+.marquee.is-scrolling .marquee-track > .dupe { display: inline-flex; }
+.marquee.rtl.is-scrolling .marquee-track { animation: mq-left  var(--mq-dur, 26s) linear infinite; }
+.marquee.ltr.is-scrolling .marquee-track { animation: mq-right var(--mq-dur, 26s) linear infinite; }
+@keyframes mq-left  { from { transform: translateX(0);    } to { transform: translateX(-50%); } }
+@keyframes mq-right { from { transform: translateX(-50%); } to { transform: translateX(0);    } }
+.marquee.is-scrolling:hover .marquee-track { animation-play-state: paused; }
+
+/* Browser logos: bare icons, no tile. On hover the icon lifts and a soft
+   BACKLIGHT fades in behind it — a centered radial glow rather than a
+   silhouette-hugging drop-shadow. Derived from --ink, so it reads as a
+   light glow on the dark theme and a soft shadow on the light one. */
+.logo-tile { position: relative; flex: 0 0 auto; display: inline-flex; line-height: 0; text-decoration: none; transition: transform .22s ease; }
+.logo-tile::before {
+  content: ""; position: absolute; inset: -16px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, color-mix(in srgb, var(--ink) 22%, transparent), transparent 68%);
+  opacity: 0; transition: opacity .22s ease;
+}
+.logo-tile img { position: relative; width: 54px; height: 54px; display: block; object-fit: contain; }
+.logo-tile:hover, .logo-tile:focus-visible { transform: translateY(-4px); outline: none; }
+.logo-tile:hover::before, .logo-tile:focus-visible::before { opacity: 1; }
+
+/* Install badges: the official store SVGs at their native shapes (no tile),
+   theme-paired, with one shared render height so the row lines up. */
+.store-badge { position: relative; flex: 0 0 auto; display: inline-flex; line-height: 0; transition: transform .22s ease; }
+.store-badge::before {
+  content: ""; position: absolute; inset: -14px -20px; border-radius: 24px; pointer-events: none;
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--ink) 20%, transparent), transparent 70%);
+  opacity: 0; transition: opacity .22s ease;
+}
+.store-badge img { position: relative; height: 50px; width: auto; display: block; }
+.store-badge:hover { transform: translateY(-4px); }
+.store-badge:hover::before { opacity: 1; }
+.store-badge[aria-disabled="true"] { cursor: default; }
+/* Dark badge set by default; the light set swaps in on the light theme.
+   Scoped under .store-badge so it outranks the generic `.store-badge img`. */
+.store-badge .badge-light { display: none; }
+:root[data-theme="light"] .store-badge .badge-light { display: block; }
+:root[data-theme="light"] .store-badge .badge-dark  { display: none; }
+
+/* Row labels: mono caps flanked by hairline rules — instrument-panel dividers. */
+.compat-label {
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--ink-muted); margin: 6px 0 -6px;
+}
+.compat-label::before, .compat-label::after {
+  content: ""; height: 1px; width: min(110px, 13vw); background: var(--grid-strong); flex: 0 0 auto;
+}
+/* The qualifier is part of the label's own line, not a third flex item — the
+   flex gap would otherwise detach it and it would carry its own tracking. */
+.compat-label-note { opacity: .72; }
+.compat-note { margin-top: 12px; font-size: 12.5px; color: var(--ink-muted); text-align: center; }
+
+/* Download strip: an EKG divider leads the eye into the CTA. */
+.compat-download { margin-top: 14px; text-align: center; }
+.ekg-divider { display: block; width: min(640px, 92%); height: 36px; margin: 0 auto 16px; overflow: visible; }
+.ekg-divider .ekg-flat  { fill: none; stroke: var(--grid-strong); stroke-width: 1.5; }
+.ekg-divider .ekg-spike { fill: none; stroke: var(--trace); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.btn-download {
+  display: inline-flex; align-items: center; gap: 9px; background: var(--trace); color: #04140a;
+  font-weight: 700; font-size: 15px; padding: 13px 26px; border-radius: 10px; text-decoration: none;
+  transition: transform .18s ease, filter .18s ease;
+  animation: cta-breathe 2.6s ease-in-out infinite alternate;
+}
+.btn-download:hover { filter: brightness(1.08); transform: translateY(-2px); }
+@keyframes cta-breathe {
+  from { box-shadow: 0 0 16px -8px color-mix(in srgb, var(--trace) 50%, transparent); }
+  to   { box-shadow: 0 0 28px -4px color-mix(in srgb, var(--trace) 75%, transparent); }
+}
+
+/* Reduced motion: no marquee, no breathing CTA. Rows wrap and stay put. */
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none !important; flex-wrap: wrap !important; justify-content: center !important; width: 100% !important; }
+  .marquee { -webkit-mask-image: none; mask-image: none; }
+  .marquee .marquee-track > .dupe { display: none !important; }
+  .btn-download { animation: none; box-shadow: 0 0 20px -6px color-mix(in srgb, var(--trace) 55%, transparent); }
+}
+
+/* --- dashboard · mobile ---
+   Reflow so everything fits without horizontal scroll: hero centered and
+   stacked, 2-column stats, shorter chart with its expand button, zone
+   legend as a vertical list. */
+@media (max-width: 560px) {
+  main { padding: 14px; gap: 16px; }
+
+  /* No flipbook on mobile (per the a11y/UX decision): pages flow at their
+     natural height and the whole thing scrolls normally. */
+  .page { min-height: 0; }
+
+  .hero { flex-direction: column; align-items: center; text-align: center; gap: 16px; }
+  .bpm-block { flex-direction: column; align-items: center; gap: 4px; }
+  .bpm-side { align-items: center; gap: 4px; padding-bottom: 0; }
+  .side-stats {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: center;
+    gap: 14px 36px;
+    padding-bottom: 0;
+    position: static; /* button rejoins the grid flow (below) */
+  }
+  .stat { align-items: center; }
+  .stat-value { font-size: 20px; }
+
+  /* Mobile header has no room for a live BPM — it's just the icon buttons. */
+  .header-bpm { display: none !important; }
+
+  /* Demo button leaves its desktop float and becomes the grid's 6th cell,
+     landing beside "contact" (5 stats fill cells 1–5, this fills 6). */
+  body[data-demo] .demo-home {
+    position: static;
+    justify-self: center;
+    align-self: center;
+  }
+
+  .chart-wrap { height: 240px; }
+  .chart-expand { display: flex; }
+
+  .zonebar-wrap { padding: 16px; }
+  .zonebar-head { flex-wrap: wrap; gap: 8px 12px; }
+  .zonelegend { flex-direction: column; gap: 0; margin-top: 10px; }
+  .legitem { width: 100%; padding: 11px 0; border-bottom: 1px solid var(--grid); }
+  .legitem:last-child { border-bottom: none; }
+  .legitem b { margin-left: auto; }
+}
+
+/* ==================================================================
+   5. DIALOGS — shared shell · settings dialog · device dialog
+   ================================================================== */
+
+/* --- dialogs · shared shell (centered modal) --- */
+dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto; /* centers within the viewport */
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--grid-strong);
+  border-radius: 12px;
+  padding: 20px;
+  width: min(600px, 92vw);
+  max-height: calc(100dvh - 40px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+}
+dialog::backdrop { background: rgba(0, 0, 0, 0.5); }
+dialog h2 { font-size: 18px; letter-spacing: 0.02em; }
+.dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.dialog-x {
+  background: transparent;
+  border: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+}
+.dialog-x:hover { color: var(--ink); background: var(--hover-tint); }
+/* Back arrow shows only on mobile (drill-down); the X only on desktop. */
+.dialog-x.dialog-back { display: none; }
+.dialog-hint { font-size: 12px; color: var(--ink-muted); margin-bottom: 14px; }
+.dialog-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+.foot-note { font-size: 12px; color: var(--ink-muted); }
+/* Clear separator between dialog subsections (e.g. Export vs Delete data). */
+.dialog-divider { height: 1px; background: var(--grid-strong); margin: 22px 0; }
+
+/* --- dialogs · settings: sidebar-nav shell ---
+   A section menu on the left, one section shown at a time on the right —
+   so the panel never scrolls and scales to more sections. */
+.settings-body { display: flex; gap: 16px; }
+.settings-nav {
+  width: 150px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.nav-item {
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--ink-secondary);
+  font: 600 13px/1.2 inherit;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.nav-item:hover { color: var(--ink); }
+.nav-item.active { background: var(--surface); color: var(--trace); }
+.nav-item:focus-visible { outline: 2px solid var(--trace); outline-offset: -2px; } /* keyboard ring, matching the app convention (10.7.5) */
+.settings-content {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--grid);
+  border-radius: 10px;
+  padding: 16px 18px;
+  min-height: 208px;
+}
+.settings-section[hidden] { display: none; }
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.settings-heading {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-secondary);
+  margin-bottom: 10px;
+}
+.card-head .settings-heading { margin-bottom: 0; }
+
+/* Shared dark styling for every settings dropdown (tone, target zone). */
+.settings-content select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239fb3a7' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 9px center;
+  border: 1px solid var(--grid-strong);
+  border-radius: 6px;
+  color: var(--ink);
+  font: 14px inherit;
+  padding: 6px 30px 6px 10px;
+  cursor: pointer;
+}
+.settings-content select:disabled { cursor: default; }
+
+/* --- dialogs · settings: toggle switch (audio, alerts) --- */
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.switch-label { display: flex; flex-direction: column; gap: 3px; font-size: 14px; }
+.switch-sub { font-size: 12px; color: var(--ink-muted); }
+.switch {
+  position: relative;
+  flex: none;
+  width: 42px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--grid-strong);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s;
+}
+.switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ink);
+  transition: transform 0.15s;
+}
+.switch[aria-checked="true"] { background: var(--trace); }
+.switch[aria-checked="true"] .switch-knob { transform: translateX(18px); background: #04170b; }
+.switch:disabled { cursor: default; }
+
+.tone-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+.tone-label { font-size: 14px; }
+/* Grey the whole tone row while the beep is off. */
+.tone-row:has(#toneSelect:disabled) { opacity: 0.45; }
+
+/* --- dialogs · settings: theme section --- */
+/* Single sun/moon appearance toggle: shows the current mode's icon. */
+.mode-icon .ico-sun { display: none; }
+:root[data-theme="light"] .mode-icon .ico-moon { display: none; }
+:root[data-theme="light"] .mode-icon .ico-sun { display: inline; }
+
+/* Accent color swatches. */
+.swatches { display: flex; gap: 12px; }
+.swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+}
+.swatch[data-accent="green"] { background: #16b050; }
+.swatch[data-accent="blue"] { background: #3a95e0; }
+.swatch[data-accent="amber"] { background: #d9a520; }
+.swatch.selected { outline-color: var(--ink); }
+
+/* --- dialogs · settings: alerts section --- */
+.alert-sound-row { margin-top: 14px; }
+.alert-sound-row.dim { opacity: 0.45; } /* no target zone set */
+
+/* --- dialogs · settings: about section --- */
+/* centred, not baseline-aligned: an SVG has no text baseline to sit on */
+.about-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.about-name { font-family: var(--wordmark); font-size: 16px; font-weight: 600; letter-spacing: 0.18em; }
+.about-version {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+.about-links { margin-top: 14px; }
+.about-links .foot-link { font-size: 13px; }
+
+/* --- dialogs · settings: accessibility section --- */
+.snap-note { margin: 14px 0 0; } /* hint sits BELOW the switch row here */
+/* A hint belongs to the row above it, so the gap to the NEXT row must be
+   bigger than the gap to its own switch — otherwise the caption reads as if
+   it introduces the setting below it. */
+.settings-section .switch-row + .dialog-hint,
+.settings-section .dialog-hint + .switch-row,
+.settings-section .switch-row + .switch-row { margin-top: 22px; }
+.snap-row.dim { opacity: 0.45; } /* snapping size-locked (mirrors alerts' dim) */
+.snap-locked { color: var(--zone-moderate); } /* attention, not error */
+
+/* --- dialogs · settings: heart-rate zones section --- */
+.zone-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  font-size: 14px;
+}
+.zone-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.zone-dot[data-zone="light"] { background: var(--zone-light); }
+.zone-dot[data-zone="moderate"] { background: var(--zone-moderate); }
+.zone-dot[data-zone="vigorous"] { background: var(--zone-vigorous); }
+.zone-dot[data-zone="peak"] { background: var(--zone-peak); }
+.zone-name { width: 90px; }
+.zone-range { color: var(--ink-muted); font-size: 12px; }
+.zone-row input {
+  background: var(--surface);
+  border: 1px solid var(--grid-strong);
+  border-radius: 6px;
+  color: var(--ink);
+  font: 14px var(--mono);
+  padding: 6px 10px;
+  width: 80px;
+}
+.zone-row input.invalid { border-color: var(--danger); }
+.zone-error { color: var(--danger); font-size: 12px; margin-top: 6px; }
+
+/* --- dialogs · settings: session data section --- */
+.export-row { display: flex; gap: 10px; }
+.export-empty { margin-top: 12px; margin-bottom: 0; }
+.export-empty[hidden] { display: none; }
+
+/* "Delete data" rows: title + description on the left, trigger button right. */
+.reset-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 0;
+}
+.reset-item + .reset-item { border-top: 1px solid var(--grid); }
+.reset-text { min-width: 0; }
+.reset-title { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+.reset-desc { font-size: 12px; color: var(--ink-muted); line-height: 1.45; }
+
+/* Type-to-confirm box (Restore defaults only). */
+.confirm-box {
+  margin: 0 0 6px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+}
+.confirm-box[hidden] { display: none; }
+.confirm-prompt { display: block; font-size: 13px; color: var(--ink); margin-bottom: 9px; }
+.confirm-prompt b { color: var(--danger); }
+.confirm-controls { display: flex; gap: 8px; }
+.confirm-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--grid-strong);
+  border-radius: 6px;
+  color: var(--ink);
+  font: 14px inherit;
+  padding: 7px 10px;
+}
+
+/* --- dialogs · device screen (opens from the Bluetooth icon / status) --- */
+.device-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+  padding: 20px 0;
+}
+.device-logo {
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--grid-strong);
+  color: var(--ink-muted);
+}
+.device-logo[data-state="live"] {
+  color: var(--trace);
+  border-color: var(--trace);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--trace) 28%, transparent);
+}
+.device-name { font-size: 21px; font-weight: 600; }
+.device-status { font-size: 14px; color: var(--ink-muted); }
+.device-status[data-state="connecting"] { color: var(--zone-moderate); }
+.device-status[data-state="live"] { color: var(--trace); }
+.device-status[data-state="error"] { color: var(--danger); }
+.device-info {
+  width: 100%;
+  max-width: 340px;
+  margin-top: 10px;
+  text-align: left;
+}
+.device-info[hidden] { display: none; }
+.dinfo-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 2px;
+  border-bottom: 1px solid var(--grid);
+  font-size: 13px;
+}
+.dinfo-row:first-child { border-top: 1px solid var(--grid); }
+.dinfo-row dt { color: var(--ink-muted); flex: none; }
+.dinfo-row dd {
+  color: var(--ink);
+  font-family: var(--mono);
+  text-align: right;
+  word-break: break-all;
+}
+.device-foot { margin-top: auto; }
+.btn-connect-full { width: 100%; justify-content: center; padding: 13px; font-size: 15px; }
+
+/* --- dialogs · mobile ---
+   The modal becomes a full-screen sheet; settings becomes a drill-down —
+   a category list (data-view="list") that opens one section's detail
+   (data-view="detail") with the section name as the title. */
+@media (max-width: 560px) {
+  dialog[open] {
+    inset: 0;
+    width: 100vw;
+    max-width: 100vw;
+    height: 100dvh;
+    max-height: none;
+    border: none;
+    border-radius: 0;
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Head stacks: back arrow on top, centered title below, X hidden. */
+  .dialog-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .dialog-x.dialog-back { display: flex; align-self: flex-start; }
+  .dialog-x.dialog-close { display: none; }
+  .dialog-title { text-align: center; font-size: 32px; line-height: 1.15; padding-bottom: 4px; }
+  .page-name { display: none; } /* the page title already shows the section name */
+
+  .settings-body { flex-direction: column; flex: 1; min-height: 0; }
+
+  .settings-nav { width: auto; flex-direction: column; gap: 0; }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 2px;
+    border-bottom: 1px solid var(--grid);
+    border-radius: 0;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .nav-item::after { content: "›"; color: var(--ink-muted); font-size: 22px; line-height: 1; }
+  .nav-item.active { background: none; color: var(--ink); } /* list rows aren't "selected" */
+  .settings-content {
+    min-height: 0;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  .card-head { justify-content: flex-end; } /* section name hidden → keep Reset right */
+  dialog[data-view="list"] .settings-content { display: none; }
+  dialog[data-view="detail"] .settings-nav { display: none; }
+}
+
+/* ==================================================================
+   6. FOOTER — brand · link columns · base line
+   ================================================================== */
+
+footer {
+  font-size: 12px;
+  color: var(--ink-muted);
+  border-top: 1px solid var(--grid);
+}
+
+/* Thin row — the single footer line visible at the last page's rest on
+   flipbook screens (the snap engine reveals the rest as a mini page).
+   Hidden on small/short screens: there the footer just renders whole. */
+.footer-thin {
+  display: none;
+  justify-content: space-between;
+  gap: 12px 24px;
+  flex-wrap: wrap;
+  width: min(960px, 100%);
+  margin: 0 auto;
+  padding: 14px 22px;
+  line-height: 1.4;
+  transition: opacity 0.3s ease;
+}
+@media (min-width: 561px) and (min-height: 620px) {
+  .footer-thin { display: flex; }
+}
+
+/* Crossfade between the footer's two forms (homepage footer only — #footer —
+   so the FAQ's plain footer is unaffected). Collapsed: only the thin line.
+   Revealed (JS toggles the class as the view commits into the footer): the
+   thin line fades out and the full content fades in. Opacity only — both
+   keep their layout space, so footer geometry never shifts underfoot. */
+#footer.revealed .footer-thin { opacity: 0; }
+@media (min-width: 561px) and (min-height: 620px) {
+  #footer .footer-cols,
+  #footer .footer-base {
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+  #footer.revealed .footer-cols,
+  #footer.revealed .footer-base { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .footer-thin,
+  #footer .footer-cols,
+  #footer .footer-base { transition: none; }
+}
+.foot-link { color: var(--ink-secondary); text-decoration: none; }
+.foot-link:hover { color: var(--trace); text-decoration: underline; }
+.foot-link.soon { opacity: 0.5; cursor: default; }
+.foot-link.soon:hover { color: var(--ink-secondary); text-decoration: none; }
+
+/* Footer link panel: brand + tagline on the left, link columns on the right. */
+.footer-cols {
+  width: min(960px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px 56px;
+  padding: 28px 22px 10px;
+}
+
+.footer-brand { flex: 1 1 260px; min-width: 220px; }
+.footer-brand-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.footer-brand-name { font-family: var(--wordmark); font-size: 13px; font-weight: 600; letter-spacing: 0.30em; color: var(--ink); }
+.footer-tagline { font-size: 12px; line-height: 1.6; color: var(--ink-muted); max-width: 320px; }
+
+.footer-col { display: flex; flex-direction: column; gap: 9px; }
+.footer-col h3 {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-secondary);
+  margin-bottom: 2px;
+}
+.footer-col .foot-link { font-size: 13px; }
+.footer-col .foot-link:focus-visible { outline: 2px solid var(--trace); outline-offset: 3px; border-radius: 3px; } /* keyboard ring, matching the app convention (10.7.5) */
+
+.footer-base {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  padding: 14px 22px;
+}
+
+/* --- footer · mobile ---
+   Match main's 14px gutter so the footer lines up with the dashboard cards. */
+@media (max-width: 560px) {
+  .footer-cols { padding: 28px 14px 10px; }
+  .footer-base { padding: 14px; }
+}
+
+/* ==================================================================
+   7. OVERLAYS — signal banner · audio hint · monitor controls
+   ================================================================== */
+
+/* Signal-lost pill: a centered toast (same rounded shape as the audio hint) in
+   amber "attention" color, shown when readings stop unexpectedly. States only
+   what the app knows — never implies anything about the wearer — and plays no
+   sound by design. Centered within .chart-wrap (not the viewport) so it always
+   sits over the BPM trace and never drifts onto unrelated page content. */
+.signal-banner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5; /* above the chart's expand button (z-index: 2) */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* Sized against the chart, not the viewport: .chart-wrap clips overflow. */
+  max-width: min(460px, calc(100% - 24px));
+  /* Translucent "frosted glass": the trace shows through, blurred, while the
+     text stays fully opaque and legible. */
+  background: color-mix(in srgb, var(--panel) 68%, transparent);
+  backdrop-filter: blur(9px) saturate(120%);
+  -webkit-backdrop-filter: blur(9px) saturate(120%);
+  border: 1px solid color-mix(in srgb, var(--zone-moderate) 72%, transparent);
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--zone-moderate);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+  pointer-events: none; /* ghost: clicks pass through to the app behind it */
+  user-select: none;
+  -webkit-user-select: none;
+}
+.signal-banner[hidden] { display: none; }
+.signal-banner svg { flex: none; }
+
+/* Shown only when a sound preference is armed but the browser hasn't allowed
+   audio yet (needs one interaction). Hidden on a default first visit. */
+.audio-hint {
+  position: fixed;
+  /* Lifted into the lower third — off the bottom edge where it read as
+     ignorable, but well clear of the centered signal-lost pill. */
+  bottom: max(72px, 16vh);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  /* Translucent "frosted glass", matching the signal-lost pill. */
+  background: color-mix(in srgb, var(--panel) 68%, transparent);
+  backdrop-filter: blur(9px) saturate(120%);
+  -webkit-backdrop-filter: blur(9px) saturate(120%);
+  border: 1px solid color-mix(in srgb, var(--grid-strong) 72%, transparent);
+  border-radius: 999px;
+  color: var(--ink-secondary);
+  font-size: 12px;
+  padding: 8px 16px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  pointer-events: none; /* ghost: the "click anywhere" listener is on window */
+  user-select: none;
+  -webkit-user-select: none;
+}
+.audio-hint[hidden] { display: none; }
+
+/* Back-to-top: the header icon-button chrome (same border, corners, and
+   background as .icon-btn) rotated 45° into a diamond; the chevron inside
+   counter-rotates to stay upright. Offsets account for the diamond's tips
+   poking ~8px past the layout box. Fades in once the page is meaningfully
+   scrolled (~300px); glides home on click. visibility keeps it out of the
+   tab order while hidden. Hidden in monitor mode (§8). */
+.to-top {
+  position: fixed;
+  bottom: 40px;
+  right: 40px;
+  z-index: 15;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border: 1px solid var(--grid-strong);
+  border-radius: 8px;         /* header-icon corners… */
+  transform: rotate(45deg);   /* …spun into a diamond */
+  color: var(--ink-secondary);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s, color 0.15s;
+  /* Eager upward bob — same 1.8s cadence as the scroll hints, but
+     asymmetric: a fast ~0.5s leap up, a lazy ~1s drift down, and a brief
+     rest before the next leap — upward is clearly where it wants to go.
+     translateY sits BEFORE the rotate so the run is straight up the
+     screen, not along the diamond's diagonal. */
+  animation: totop-run 1.8s infinite;
+}
+@keyframes totop-run {
+  0% { transform: translateY(0) rotate(45deg); animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1); }
+  30% { transform: translateY(-11px) rotate(45deg); animation-timing-function: ease-in-out; }
+  85%, 100% { transform: translateY(0) rotate(45deg); }
+}
+.to-top svg { transform: rotate(-45deg); } /* chevron stays upright */
+.to-top.show { opacity: 1; visibility: visible; }
+.to-top:hover { background: var(--hover-tint); color: var(--trace); }
+.to-top:focus-visible { outline: 2px solid var(--trace); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .to-top { transition: none; animation: none; } }
+
+/* Monitor-mode floating controls (battery, mute, exit). */
+.monitor-ctls {
+  position: fixed;
+  top: 18px;
+  right: 20px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.monitor-ctls[hidden] { display: none; }
+.monitor-ctls .icon-btn { background: var(--bg); }
+
+/* Mute button icon: waves when on, "x" when off (mirrors the settings switch) */
+#monitorMute .sound-wave { display: none; }
+#monitorMute .sound-x { display: inline; }
+#monitorMute[aria-pressed="true"] .sound-wave { display: inline; }
+#monitorMute[aria-pressed="true"] .sound-x { display: none; }
+#monitorMute[aria-pressed="true"] { color: var(--trace); border-color: var(--trace); }
+
+/* --- overlays · mobile ---
+   Monitor-mode controls take the same corners/size as the header icons:
+   mute top-left, exit top-right. */
+@media (max-width: 560px) {
+  .monitor-ctls { display: contents; }
+  #monitorMute, #monitorExit { position: fixed; top: 12px; z-index: 41; background: var(--bg); }
+  #monitorMute { left: 12px; }
+  #monitorExit { right: 12px; }
+}
+
+/* ==================================================================
+   8. MONITOR MODE — hide chrome, fit everything in one screen
+   ================================================================== */
+
+body.monitor { overflow: hidden; }
+body.monitor header,
+body.monitor footer,
+body.monitor .table-view,
+body.monitor .intro,
+body.monitor .toc,
+body.monitor .scroll-hint,
+body.monitor .to-top,
+body.monitor #unsupported { display: none; }
+/* Monitor mode is a single fixed screen — page sizing doesn't apply. */
+body.monitor .page { min-height: 0; }
+
+body.monitor main {
+  width: 100%;
+  max-width: 100%;
+  height: 100vh;
+  height: 100dvh; /* excludes mobile browser UI when present */
+  padding: 26px 40px;
+  gap: 20px;
+  overflow: hidden;
+}
+/* The dashboard containers pass their height straight through so the
+   chart can absorb the leftover space; gap matches main's monitor gap. */
+body.monitor .dashboard,
+body.monitor .dash-body { flex: 1 1 auto; min-height: 0; gap: 20px; }
+body.monitor .bpm-value { font-size: clamp(100px, 18vw, 230px); }
+body.monitor .bpm-unit { font-size: 24px; }
+body.monitor .stat-value { font-size: 26px; }
+body.monitor .hero { flex: none; }
+/* Chart absorbs all leftover height; min-height:0 lets a flex child shrink. */
+body.monitor .chart-wrap { flex: 1 1 auto; height: auto; min-height: 0; }
+body.monitor .zonebar-wrap { flex: none; }

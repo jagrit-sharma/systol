@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Systol · FAQ</title>
+  <meta name="description"
+    content="How Systol works, which Bluetooth sensors and browsers it supports, what &quot;signal lost&quot; means, and how your heart-rate data stays private: answers to common questions." />
+  <!-- og:image / og:url deferred until branding + deploy URL exist. -->
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Systol · FAQ" />
+  <meta property="og:description"
+    content="How Systol works, which sensors and browsers it supports, and how your heart-rate data stays private." />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Systol · FAQ" />
+  <meta name="twitter:description"
+    content="How Systol works, supported devices and browsers, and how your data stays private." />
+  <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="assets/icons/favicon.ico" sizes="16x16 32x32 48x48" />
+  <link rel="apple-touch-icon" href="assets/icons/favicon.svg" />
+
+  <link rel="stylesheet" href="style.css" />
+  <!-- Restore the theme the user picked in the app (dark/light + accent), before
+       first paint, so the FAQ matches and there's no flash. Mirrors app.js. -->
+  <script>
+    (function () {
+      var t = localStorage.getItem("systol-theme") === "light" ? "light" : "dark";
+      var stored = localStorage.getItem("systol-accent");
+      var a = ["blue", "amber"].includes(stored) ? stored : "green";
+      document.documentElement.dataset.theme = t;
+      document.documentElement.dataset.accent = a;
+    })();
+  </script>
+  <style>
+    /* FAQ reading view: a clean, markdown-style article. Uses the shared theme
+       tokens from style.css; only the article layout lives here. */
+    .faq-top {
+      border-bottom: 1px solid var(--grid);
+    }
+
+    .faq-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--ink-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .faq-back:hover {
+      color: var(--ink);
+    }
+
+    .faq-back svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .faq-nav {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .faq-home {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: var(--ink);
+    }
+
+    .faq-home-name {
+      font-family: var(--wordmark);
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.3em;
+    }
+
+    .faq-home:hover {
+      opacity: 0.85;
+    }
+
+    /* Keep the FAQ header a clean row on mobile — the shared header rule in
+       style.css switches to a block/centered layout meant for the app's
+       corner icons, which this page doesn't use. */
+    @media (max-width: 560px) {
+      .faq-top {
+        display: flex;
+        text-align: left;
+        padding: 14px 16px;
+      }
+
+      .faq-nav {
+        gap: 14px;
+      }
+    }
+
+    .faq-tag {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--ink-muted);
+    }
+
+    main.faq {
+      width: min(720px, 100%);
+      margin: 0 auto;
+      padding: 40px 22px 64px;
+      display: block;
+    }
+
+    .faq h1 {
+      font-size: clamp(28px, 6vw, 38px);
+      letter-spacing: 0.01em;
+      margin-bottom: 8px;
+      text-wrap: balance;
+    }
+
+    .faq .lede {
+      color: var(--ink-secondary);
+      font-size: 15.5px;
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+
+    .faq h2 {
+      font-size: 19px;
+      margin: 38px 0 10px;
+      scroll-margin-top: 80px;
+      text-wrap: balance;
+    }
+
+    .faq p {
+      color: var(--ink-secondary);
+      font-size: 15px;
+      line-height: 1.7;
+      margin: 10px 0;
+    }
+
+    .faq a {
+      color: var(--trace);
+      text-decoration: none;
+    }
+
+    .faq a:hover {
+      text-decoration: underline;
+    }
+
+    .faq strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .faq code {
+      font-family: var(--mono);
+      font-size: 0.88em;
+      background: var(--surface);
+      border: 1px solid var(--grid);
+      border-radius: 5px;
+      padding: 1px 6px;
+      color: var(--ink);
+    }
+
+    .faq hr {
+      border: none;
+      border-top: 1px solid var(--grid);
+      margin: 34px 0;
+    }
+
+    /* Obsidian-style callouts: a colored left rail + tinted background. */
+    .callout {
+      border-left: 3px solid var(--zone-moderate);
+      background: color-mix(in srgb, var(--zone-moderate) 9%, transparent);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin: 20px 0;
+    }
+
+    .callout p {
+      color: var(--ink);
+      margin: 0;
+    }
+
+    .callout-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      margin-bottom: 7px;
+      color: var(--zone-moderate);
+    }
+
+    .callout-title svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .callout.warn {
+      border-left-color: var(--danger);
+      background: color-mix(in srgb, var(--danger) 9%, transparent);
+    }
+
+    .callout.warn .callout-title {
+      color: var(--danger);
+    }
+  </style>
+</head>
+
+<body>
+  <header class="faq-top">
+    <div class="faq-nav">
+      <!-- Back → wherever the user came from (came from ?demo → return to it);
+           href="index.html" is the fallback when opened cold. Script below. -->
+      <a class="faq-back js-back" href="index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round" aria-hidden="true">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+        <span>Back</span>
+      </a>
+      <!-- Brand → the app home, always. -->
+      <a class="faq-home" href="index.html" aria-label="Systol home">
+        <svg class="brand-mark" viewBox="0 0 48 48" width="26" height="26" aria-hidden="true">
+          <path
+            d="M42.49 20.83L36.24 20.83C35.28 20.83 34.17 20.11 33.79 19.23C31.19 13.26 17.1 10.27 15.91 15.9C14.96 20.36 20.92 22.12 24 24C27.08 25.88 33.04 27.64 32.09 32.1C30.9 37.73 16.81 34.74 14.21 28.77C13.83 27.89 12.72 27.17 11.76 27.17L5.51 27.17"
+            fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span class="faq-home-name">SYSTOL</span>
+      </a>
+    </div>
+    <span class="faq-tag">FAQ</span>
+  </header>
+
+  <main class="faq">
+    <h1>Frequently asked questions</h1>
+    <p class="lede">Systol is a live heart-rate monitor that runs entirely in your browser. Here's how it works, what it
+      can and can't do, and how your data is handled.</p>
+
+    <div class="callout warn">
+      <div class="callout-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round" aria-hidden="true">
+          <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+        Not a medical device
+      </div>
+      <p>Systol is a hobbyist, educational project, not a certified medical device. Don't rely on it for diagnosis,
+        treatment, or any decision about your health. Readings come entirely from your consumer sensor and can be
+        inaccurate, delayed, or missing.</p>
+    </div>
+
+    <h2>What is Systol?</h2>
+    <p>Connect a Bluetooth heart-rate sensor and Systol shows your live BPM, a scrolling trace of the last 60 seconds,
+      which heart-rate zone you're in, and how long you've spent in each zone this session. It's built to feel like a
+      bedside monitor, right in a browser tab.</p>
+
+    <h2>Which browsers work?</h2>
+    <p>Systol uses the <strong>Web Bluetooth API</strong>, which only Chromium-based browsers support: <strong>Chrome,
+        Edge, Opera, Brave</strong>, and similar, on desktop and Android. Firefox and Safari have chosen not to
+      implement it, so Systol can't connect to a device there. (On iPhone and iPad, no browser supports it: that's an
+      Apple platform limitation, not a browser choice.)</p>
+
+    <h2>What devices can I connect?</h2>
+    <p>Any Bluetooth Low Energy sensor that advertises the standard <strong>Heart Rate service
+        (<code>0x180D</code>)</strong>: most chest straps (Polar, Garmin, Wahoo, and others) and some armbands and
+      smartwatches.</p>
+
+    <h2>Why won't my Fitbit (or watch) connect, or show battery?</h2>
+    <p>Many fitness wearables, including Fitbit, don't expose the standard Bluetooth Heart Rate service to other apps;
+      they keep the data inside their own ecosystem. If a device doesn't advertise <code>0x180D</code>, Systol simply
+      can't see its heart rate. Battery is a separate, optional service (<code>0x180F</code>); when a device doesn't
+      offer it, the battery indicator just stays hidden.</p>
+
+    <h2>Do I have to pick my device every time I connect?</h2>
+    <p>For now, yes: each time you connect, your browser shows its Bluetooth picker and you choose your sensor. That's
+      the browser's own security model: a page only gets access to a device you explicitly select. One-tap reconnect to
+      a remembered sensor is planned for a future update.</p>
+
+    <h2>Will my session be saved if I refresh or close the tab?</h2>
+    <p>Not yet. Systol keeps your current session in memory only, so refreshing the page, closing the tab, or navigating
+      away starts a fresh session. If you want to keep a workout, <strong>export it first</strong> (Settings → Session
+      data → Export CSV/JSON). Saved session history is on the roadmap.</p>
+
+    <h2>What does "Signal lost" mean?</h2>
+    <div class="callout">
+      <div class="callout-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        It's a connection notice, not a health alarm
+      </div>
+      <p>The "Signal lost" pill means Systol stopped receiving readings from your sensor. It may have disconnected, moved
+        out of range, run low on battery, or lost skin contact. It says nothing about you; only that the data stream
+        stopped. That's also why it plays no sound.</p>
+    </div>
+
+    <h2>What does "No pulse detected" mean?</h2>
+    <p>Some sensors keep sending data but report a heart rate of zero when they can't find a pulse: a strap resting on a
+      table, dry electrodes, or a wrist sensor lifted off the skin. Systol treats that honestly: it holds your last real
+      reading, freezes the heart, and shows a <strong>"No pulse detected"</strong> notice rather than drawing a fake
+      flatline or a misleading number. Recovery is instant on the next real beat.</p>
+
+    <h2>How do heart-rate zones work?</h2>
+    <p>Each reading is sorted into <strong>Light</strong>, <strong>Moderate</strong>, <strong>Vigorous</strong>, or
+      <strong>Peak</strong> by BPM thresholds. You can set your own in <strong>Settings → Heart rate zones</strong>
+      (defaults: Moderate 115, Vigorous 135, Peak 160). The big number, the heart, and the trace all recolor to your
+      current zone.
+    </p>
+
+    <h2>What are target-zone alerts?</h2>
+    <p>Choose a target zone in <strong>Settings → Alerts</strong>, and Systol flashes, and optionally chimes, when you
+      enter or leave it. A brief hold before it fires keeps alerts from flickering when you hover right on a zone
+      boundary.</p>
+
+    <h2>What is monitor mode?</h2>
+    <p>A fullscreen, glanceable view: a giant BPM readout and a large trace with the rest of the interface hidden, like
+      a bedside monitor. Enter it from the header button (or the expand button on the chart) and leave it with
+      <code>Esc</code>.
+    </p>
+
+    <h2>Can I hear my heartbeat?</h2>
+    <p>Turn on <strong>Beep on each beat</strong> in <strong>Settings → Audio</strong> and a soft tick plays in time
+      with your live heart rate, with a few tones to choose from. Browsers require one click or tap on the page before
+      any sound can start.</p>
+
+    <h2>How do I export my session?</h2>
+    <p>Open <strong>Settings → Session data</strong> and choose <strong>Export CSV</strong> or <strong>Export
+        JSON</strong>. The file downloads straight from your browser; nothing is uploaded.</p>
+
+    <h2>Is my data private?</h2>
+    <p>Yes. Everything happens on your device: there's no server and no network calls, so your readings are never
+      uploaded. Your settings (theme, zones, and preferences) are saved in your browser's local storage on this device,
+      and exported files are generated locally in the browser. Nothing is ever sent anywhere.</p>
+
+    <h2>What's demo mode?</h2>
+    <p>Add <code>?demo</code> to the address (for example <code>&hellip;/?demo</code>) to run Systol with simulated
+      heart-rate data, no device required. It's handy for trying the app out or previewing every state without a sensor.
+    </p>
+
+    <hr />
+    <p><a href="index.html" class="js-back">← Back to Systol</a></p>
+  </main>
+
+  <footer>
+    <div class="footer-base">
+      Web Bluetooth · standard Heart Rate Service (0x180D) · data never leaves your device
+    </div>
+  </footer>
+
+  <script>
+    // Back links return the user to where they came from WITHIN the site
+    // (came from ?demo → back to ?demo; a future "report issue" page → back to
+    // it), falling back to home (the href) when the FAQ is opened cold, in a
+    // new tab, or from another site.
+    document.querySelectorAll(".js-back").forEach(function (el) {
+      el.addEventListener("click", function (e) {
+        if (document.referrer && new URL(document.referrer).origin === location.origin) {
+          e.preventDefault();
+          history.back();
+        }
+      });
+    });
+  </script>
+  <!-- Info-focused page: the dot grid only, dimmed, so the FAQ still reads as
+       the same site without animated traces competing with the copy. -->
+  <script src="systol-bgfx.js" data-brightness="70" data-wall="off" defer></script>
+</body>
+
+</html>

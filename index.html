@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <!-- Web keeps normal pinch zoom; installed-app contexts (PWA/WebView)
+       get native parity — app.js §10 tightens this meta there. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Systol · Live Heart Rate Monitor</title>
+  <meta name="description"
+    content="A live heart-rate monitor that runs in your browser. Connect a Bluetooth sensor for live BPM, zones, and a scrolling trace. Your data never leaves your device." />
+  <!-- Social link previews (Open Graph + Twitter). og:image and og:url are
+       deferred until a share image (branding — audit 10.3.5) and a deploy URL
+       exist. "Systol" here is a rebrand touchpoint. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Systol · Live Heart Rate Monitor" />
+  <meta property="og:description"
+    content="A live heart-rate monitor that runs entirely in your browser. Bring your own Bluetooth sensor. Your data never leaves your device." />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Systol · Live Heart Rate Monitor" />
+  <meta name="twitter:description"
+    content="A live heart-rate monitor that runs entirely in your browser. Your data never leaves your device." />
+  <!-- Favicon. Browsers that understand SVG take it (sharp at any size); the
+       .ico is the fallback for those that don't. -->
+  <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="assets/icons/favicon.ico" sizes="16x16 32x32 48x48" />
+  <link rel="apple-touch-icon" href="assets/icons/favicon.svg" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <!-- ================================================================
+       HEADER — brand · battery chip · status pill · header buttons
+       ================================================================ -->
+  <header>
+    <!-- Brand → home. On this page (the home page) that means scroll to the
+         top rather than reload — app.js §2 intercepts; href is the no-JS
+         fallback. -->
+    <a class="brand" href="index.html">
+      <!-- Decorative: the wordmark beside it carries the accessible name. -->
+      <svg class="brand-mark" viewBox="0 0 48 48" width="28" height="28" aria-hidden="true">
+        <path
+          d="M42.49 20.83L36.24 20.83C35.28 20.83 34.17 20.11 33.79 19.23C31.19 13.26 17.1 10.27 15.91 15.9C14.96 20.36 20.92 22.12 24 24C27.08 25.88 33.04 27.64 32.09 32.1C30.9 37.73 16.81 34.74 14.21 28.77C13.83 27.89 12.72 27.17 11.76 27.17L5.51 27.17"
+          fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <h1>SYSTOL</h1>
+    </a>
+    <div class="controls">
+      <div id="batteryChip" class="battery-chip" hidden title="Device battery">
+        <svg width="14" height="20" viewBox="5 2 14 20" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="7" y="6" width="10" height="15" rx="2" />
+          <path d="M10 3.5h4" />
+        </svg>
+        <span id="batteryPct">--</span>
+      </div>
+      <!-- Live BPM in the header (desktop only): reveals with a slide+fade once
+           the hero BPM scrolls out of view, so the reading stays glanceable.
+           Zone-colored mini heart beats at the real tempo (app.js §2). -->
+      <div id="headerBpm" class="header-bpm" data-zone="" aria-hidden="true">
+        <span id="headerHeart" class="header-heart">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor"
+              d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+          </svg>
+        </span>
+        <span id="headerBpmValue">--</span>
+      </div>
+      <div id="status" class="status" data-state="idle" role="status" aria-live="polite" tabindex="0"
+        title="Device info">
+        <span class="led" aria-hidden="true"></span>
+        <span id="statusText" class="status-text">Not connected</span>
+      </div>
+      <button id="monitorBtn" class="icon-btn" aria-label="Monitor mode (fullscreen)" title="Monitor mode">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 9V5a2 2 0 0 1 2-2h4" />
+          <path d="M21 9V5a2 2 0 0 0-2-2h-4" />
+          <path d="M3 15v4a2 2 0 0 0 2 2h4" />
+          <path d="M21 15v4a2 2 0 0 1-2 2h-4" />
+        </svg>
+      </button>
+      <button id="deviceBtn" class="icon-btn device-btn" aria-label="Device and connection" title="Device">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M6.5 6.5 L17.5 17.5 L12 23 L12 1 L17.5 6.5 L6.5 17.5" />
+        </svg>
+      </button>
+      <button id="settingsBtn" class="icon-btn" aria-label="Settings" title="Settings">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" aria-hidden="true">
+          <line x1="4" y1="7" x2="20" y2="7" />
+          <circle cx="9" cy="7" r="2.6" fill="var(--panel)" />
+          <line x1="4" y1="17" x2="20" y2="17" />
+          <circle cx="15" cy="17" r="2.6" fill="var(--panel)" />
+        </svg>
+      </button>
+      <button id="connectBtn" class="btn-connect">
+        <svg class="btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M6.5 6.5 L17.5 17.5 L12 23 L12 1 L17.5 6.5 L6.5 17.5" />
+        </svg>
+        <span id="connectLabel">Connect device</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ================================================================
+       MAIN — banners + gutter TOC + the flipbook pages:
+         page 1 · dashboard   page 2 · intro   page 3 · how it works
+       ================================================================ -->
+  <main>
+    <!-- TOC: fixed page navigation in the left gutter (wide screens only).
+         JS aligns it with the hero and the content column (app.js §4). -->
+    <nav class="toc" id="toc" aria-label="Page navigation">
+      <span class="toc-title">Contents</span>
+      <a href="#dashboard" data-page="dashboard" class="active">Dashboard</a>
+      <a href="#intro" data-page="intro">Introduction</a>
+      <a href="#how-it-works" data-page="how-it-works">How it works</a>
+      <a href="#compatible" data-page="compatible">Compatible</a>
+    </nav>
+
+    <div id="unsupported" class="banner" hidden>
+      This browser doesn't support Web Bluetooth. Use Chrome, Edge, or another
+      Chromium-based browser (Firefox and Safari have chosen not to implement it).
+    </div>
+
+    <!-- PAGE 1 · DASHBOARD container: hero + dash-body (chart → zones →
+         table). dash-body is one unit so the whole stack can be re-anchored
+         (e.g. gutter layouts) without touching its pieces. -->
+    <section id="dashboard" class="dashboard page" aria-label="Live heart rate dashboard">
+      <section class="hero" aria-label="Current heart rate">
+        <div class="bpm-block" id="bpmBlock" data-zone="">
+          <span id="bpm" class="bpm-value empty">--</span>
+          <div class="bpm-side">
+            <span class="bpm-unit">BPM
+              <span id="heartSize" class="heart-size">
+                <svg id="heart" class="heart" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="currentColor"
+                    d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                </svg>
+              </span>
+            </span>
+            <span id="zoneLabel" class="zone-label"></span>
+            <span id="targetBadge" class="target-badge" hidden>● in target</span>
+          </div>
+        </div>
+        <div class="side-stats">
+          <div class="stat"><span class="stat-label">min</span><span id="statMin" class="stat-value">--</span></div>
+          <div class="stat"><span class="stat-label">avg</span><span id="statAvg" class="stat-value">--</span></div>
+          <div class="stat"><span class="stat-label">max</span><span id="statMax" class="stat-value">--</span></div>
+          <div class="stat"><span class="stat-label">RR</span><span id="statRR" class="stat-value">--</span></div>
+          <div class="stat"><span class="stat-label">contact</span><span id="statContact" class="stat-value">--</span>
+          </div>
+          <!-- Demo-only: return to the live app (drops ?demo). Shown via
+             body[data-demo]; sits above the stats on desktop, in the stats
+             grid's spare cell beside "contact" on mobile. -->
+          <a class="demo-home" href="index.html" aria-label="Exit demo, go to the live app">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 10.5 12 3l9 7.5" />
+              <path d="M5 9.5V20h14V9.5" />
+            </svg>
+            <span>Exit demo</span>
+          </a>
+        </div>
+        <!-- Screen-reader-only: the live BPM number is NOT announced (it would read
+           a value aloud every second); instead we announce only zone CHANGES here. -->
+        <span id="zoneAnnounce" class="sr-only" role="status" aria-live="polite"></span>
+      </section>
+
+      <div class="dash-body">
+        <section class="chart-wrap" aria-label="Heart rate over the last 60 seconds">
+          <canvas id="chart"></canvas>
+          <!-- Anchored to the chart (not the viewport) so it only ever floats over
+           the trace, whatever else gets added to the page later. -->
+          <div id="signalBanner" class="signal-banner" role="alert" hidden>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            <span id="signalBannerText">Signal lost: no readings from your device</span>
+          </div>
+          <div id="tooltip" class="tooltip" hidden></div>
+          <button type="button" id="chartExpand" class="chart-expand" aria-label="Monitor mode (fullscreen)"
+            title="Monitor mode">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 9V5a2 2 0 0 1 2-2h4" />
+              <path d="M21 9V5a2 2 0 0 0-2-2h-4" />
+              <path d="M3 15v4a2 2 0 0 0 2 2h4" />
+              <path d="M21 15v4a2 2 0 0 1-2 2h-4" />
+            </svg>
+          </button>
+        </section>
+
+        <section class="zonebar-wrap" aria-label="Time spent in each heart rate zone this session">
+          <div class="zonebar-head">
+            <h2>Time in zones</h2>
+            <div class="zonebar-head-right">
+              <span id="zoneTotal" class="zonebar-total">0:00</span>
+              <button type="button" id="clearSessionQuick" class="icon-btn-sm" aria-label="Clear session"
+                title="Clear session" disabled>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="1 4 1 10 7 10" />
+                  <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="zonebar" id="zonebar">
+            <div class="zoneseg" data-zone="light" id="segLight"></div>
+            <div class="zoneseg" data-zone="moderate" id="segModerate"></div>
+            <div class="zoneseg" data-zone="vigorous" id="segVigorous"></div>
+            <div class="zoneseg" data-zone="peak" id="segPeak"></div>
+            <span id="zonebarEmpty" class="zonebar-empty">no data yet, connect a device</span>
+          </div>
+          <div class="zonelegend">
+            <span class="legitem"><span class="legdot" data-zone="light"></span>Light <b id="tLight">0:00</b></span>
+            <span class="legitem"><span class="legdot" data-zone="moderate"></span>Moderate <b
+                id="tModerate">0:00</b></span>
+            <span class="legitem"><span class="legdot" data-zone="vigorous"></span>Vigorous <b
+                id="tVigorous">0:00</b></span>
+            <span class="legitem"><span class="legdot" data-zone="peak"></span>Peak <b id="tPeak">0:00</b></span>
+          </div>
+        </section>
+
+        <!-- Docked in the right gutter on wide screens (expanded), in vertical
+         flow below the zone bar otherwise (collapsed) — app.js §3 syncs the
+         open state, CSS §4 does the docking. -->
+        <details class="table-view" id="readingsTable">
+          <summary>Recent readings (table view)</summary>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Time</th>
+                  <th scope="col">BPM</th>
+                  <th scope="col">RR intervals (ms)</th>
+                </tr>
+              </thead>
+              <tbody id="readingsBody"></tbody>
+            </table>
+          </div>
+        </details>
+      </div><!-- /dash-body -->
+
+      <!-- Bouncing hint at the page's bottom edge: there's more below.
+         Clickable; href + label are wired to the NEXT page by app.js §4,
+         so inserting/reordering pages needs no updates here. -->
+      <a class="scroll-hint" href="#">
+        scroll
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </a>
+    </section><!-- /dashboard -->
+
+    <!-- PAGE 2 · INTRODUCTION — all copy below is PLACEHOLDER; final
+         content is being written separately. Structure only. -->
+    <section class="page intro" id="intro" aria-label="What is Systol">
+      <h2 class="intro-title">Your heartbeat, <span>live</span> in the browser.</h2>
+      <p class="intro-lede">Systol turns a browser tab into a bedside monitor for your workouts, your recovery, or just
+        your resting beat. Connect a Bluetooth chest strap or a compatible watch to see your live BPM, zones, and
+        vitals.</p>
+      <p class="intro-demo-line">No sensor? <a href="?demo">Try the demo</a> first.</p>
+
+      <a class="scroll-hint" href="#">
+        scroll
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </a>
+    </section>
+
+    <!-- PAGE 3 · HOW IT WORKS — all copy below is PLACEHOLDER; final
+         content is being written separately. Structure only. -->
+    <section class="page intro" id="how-it-works" aria-label="How Systol works">
+      <h2 class="intro-title">Three steps, zero servers.</h2>
+      <p class="intro-sub">Your data never leaves your device.</p>
+      <div class="intro-cards">
+        <div class="intro-card"><b>1 · Pair</b>Hit Connect and choose your sensor from the browser's Bluetooth list.
+        </div>
+        <div class="intro-card"><b>2 · Watch</b>Live BPM, a scrolling trace, your time in each zone, and alerts when you
+          hit a target.</div>
+        <div class="intro-card"><b>3 · Keep it</b>Export your session as CSV/JSON. Nothing ever leaves your device.
+        </div>
+      </div>
+
+      <a class="scroll-hint" href="#">
+        scroll
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </a>
+    </section>
+
+    <!-- PAGE 4 · COMPATIBLE DEVICES.
+         Browsers: bare official logos, each linking to that browser's site.
+         Platforms: the official store badges (Play / Microsoft Store / Flathub),
+                    theme-paired and not yet clickable — the packages don't exist.
+         Both rows are static and centered when everything fits; they only become
+         marquees on overflow (app.js §11), drifting in opposite directions. -->
+    <section class="page intro" id="compatible" aria-label="Compatible browsers and platforms">
+      <h2 class="intro-title">Works on your setup.</h2>
+      <p class="intro-sub">Systol runs anywhere Web Bluetooth does.</p>
+      <div class="compat-marquees">
+        <p class="compat-label"><span>Compatible browsers <span class="compat-label-note">(Chromium only)</span></span>
+        </p>
+        <div class="marquee rtl" aria-label="Supported browsers">
+          <div class="marquee-track">
+            <a class="logo-tile" href="https://www.google.com/chrome/" target="_blank" rel="noopener"
+              title="Chrome"><img src="assets/img/browsers/chrome.svg" alt="Chrome"></a>
+            <a class="logo-tile" href="https://www.microsoft.com/edge" target="_blank" rel="noopener" title="Edge"><img
+                src="assets/img/browsers/edge.svg" alt="Edge"></a>
+            <a class="logo-tile" href="https://brave.com/" target="_blank" rel="noopener" title="Brave"><img
+                src="assets/img/browsers/brave.svg" alt="Brave"></a>
+            <a class="logo-tile" href="https://www.opera.com/" target="_blank" rel="noopener" title="Opera"><img
+                src="assets/img/browsers/opera.svg" alt="Opera"></a>
+            <a class="logo-tile" href="https://vivaldi.com/" target="_blank" rel="noopener" title="Vivaldi"><img
+                src="assets/img/browsers/vivaldi.svg" alt="Vivaldi"></a>
+            <a class="logo-tile" href="https://arc.net/" target="_blank" rel="noopener" title="Arc"><img
+                src="assets/img/browsers/arc.svg" alt="Arc"></a>
+            <a class="logo-tile" href="https://www.samsung.com/us/apps/samsung-internet/" target="_blank" rel="noopener"
+              title="Samsung Internet"><img src="assets/img/browsers/samsung_internet.svg" alt="Samsung Internet"></a>
+            <a class="logo-tile dupe" href="https://www.google.com/chrome/" target="_blank" rel="noopener"
+              title="Chrome" aria-hidden="true" tabindex="-1"><img src="assets/img/browsers/chrome.svg" alt=""></a>
+            <a class="logo-tile dupe" href="https://www.microsoft.com/edge" target="_blank" rel="noopener" title="Edge"
+              aria-hidden="true" tabindex="-1"><img src="assets/img/browsers/edge.svg" alt=""></a>
+            <a class="logo-tile dupe" href="https://brave.com/" target="_blank" rel="noopener" title="Brave"
+              aria-hidden="true" tabindex="-1"><img src="assets/img/browsers/brave.svg" alt=""></a>
+            <a class="logo-tile dupe" href="https://www.opera.com/" target="_blank" rel="noopener" title="Opera"
+              aria-hidden="true" tabindex="-1"><img src="assets/img/browsers/opera.svg" alt=""></a>
+            <a class="logo-tile dupe" href="https://vivaldi.com/" target="_blank" rel="noopener" title="Vivaldi"
+              aria-hidden="true" tabindex="-1"><img src="assets/img/browsers/vivaldi.svg" alt=""></a>
+            <a class="logo-tile dupe" href="https://arc.net/" target="_blank" rel="noopener" title="Arc"
+              aria-hidden="true" tabindex="-1"><img src="assets/img/browsers/arc.svg" alt=""></a>
+            <a class="logo-tile dupe" href="https://www.samsung.com/us/apps/samsung-internet/" target="_blank"
+              rel="noopener" title="Samsung Internet" aria-hidden="true" tabindex="-1"><img
+                src="assets/img/browsers/samsung_internet.svg" alt=""></a>
+          </div>
+        </div>
+        <p class="compat-label">Install on your device</p>
+        <div class="marquee ltr" aria-label="Platforms it installs on (packages coming soon)">
+          <div class="marquee-track">
+            <span class="store-badge" aria-disabled="true" title="Google Play, coming soon">
+              <img class="badge-dark" src="assets/img/stores/playstore_dark.svg" alt="Get it on Google Play (coming soon)">
+              <img class="badge-light" src="assets/img/stores/playstore_light.svg" alt="Get it on Google Play (coming soon)">
+            </span>
+            <span class="store-badge" aria-disabled="true" title="Microsoft Store, coming soon">
+              <img class="badge-dark" src="assets/img/stores/ms_store_dark.svg" alt="Download from the Microsoft Store (coming soon)">
+              <img class="badge-light" src="assets/img/stores/ms_store_light.svg"
+                alt="Download from the Microsoft Store (coming soon)">
+            </span>
+            <span class="store-badge" aria-disabled="true" title="Flathub, coming soon">
+              <img class="badge-dark" src="assets/img/stores/flathub_dark.svg" alt="Get it on Flathub (coming soon)">
+              <img class="badge-light" src="assets/img/stores/flathub_light.svg" alt="Get it on Flathub (coming soon)">
+            </span>
+            <span class="store-badge dupe" aria-hidden="true">
+              <img class="badge-dark" src="assets/img/stores/playstore_dark.svg" alt=""><img class="badge-light"
+                src="assets/img/stores/playstore_light.svg" alt="">
+            </span>
+            <span class="store-badge dupe" aria-hidden="true">
+              <img class="badge-dark" src="assets/img/stores/ms_store_dark.svg" alt=""><img class="badge-light"
+                src="assets/img/stores/ms_store_light.svg" alt="">
+            </span>
+            <span class="store-badge dupe" aria-hidden="true">
+              <img class="badge-dark" src="assets/img/stores/flathub_dark.svg" alt=""><img class="badge-light"
+                src="assets/img/stores/flathub_light.svg" alt="">
+            </span>
+          </div>
+        </div>
+        <p class="compat-note" style="margin-top:0;">Android and ChromeOS via Google Play · Windows · Linux. On macOS,
+          use it right in your browser.</p>
+      </div>
+      <div class="compat-download">
+        <!-- EKG divider: flatline → heartbeat spike → flatline. The one divider on this
+             page that gets the accent — it leads the eye into the CTA. -->
+        <svg class="ekg-divider" viewBox="0 0 900 36" aria-hidden="true">
+          <path class="ekg-flat" d="M0 18H396M504 18H900" />
+          <path class="ekg-spike" d="M396 18h24l10 -6 12 16 14 -22 12 14 10 -2h26" />
+        </svg>
+        <a class="btn-download" href="downloads.html">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" />
+          </svg>
+          Download Systol
+        </a>
+        <p class="compat-note">Direct downloads for every platform. Downloads page coming soon.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================================================================
+       DIALOGS — settings (theme · audio · zones · alerts · data) · device
+       ================================================================ -->
+  <dialog id="settingsDialog">
+    <div class="dialog-head">
+      <button type="button" id="settingsBack" class="dialog-x dialog-back" aria-label="Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+      </button>
+      <h2 class="dialog-title" id="settingsTitle">Settings</h2>
+      <button type="button" id="settingsClose" class="dialog-x dialog-close" aria-label="Close settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="settings-body">
+      <!-- A settings menu, not a WAI-ARIA tab strip: these are plain buttons that
+           swap the panel on the right. aria-current marks the active section
+           (honest "you are here" without promising arrow-key tab semantics). 10.6.3 -->
+      <nav class="settings-nav" aria-label="Settings sections">
+        <button type="button" class="nav-item active" data-section="theme" aria-current="true">Theme</button>
+        <button type="button" class="nav-item" data-section="audio">Audio</button>
+        <button type="button" class="nav-item" data-section="zones">Heart rate zones</button>
+        <button type="button" class="nav-item" data-section="alerts">Alerts</button>
+        <button type="button" class="nav-item" data-section="access">Accessibility</button>
+        <button type="button" class="nav-item" data-section="data">Session data</button>
+        <button type="button" class="nav-item" data-section="about">About</button>
+      </nav>
+
+      <div class="settings-content">
+        <section class="settings-section active" data-section="theme">
+          <h3 class="settings-heading page-name">Theme</h3>
+          <div class="switch-row">
+            <span class="switch-label">Appearance<span class="switch-sub">dark or light background</span></span>
+            <button type="button" id="modeToggle" class="icon-btn mode-icon" aria-label="Toggle light and dark mode">
+              <svg class="ico-moon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z" />
+              </svg>
+              <svg class="ico-sun" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4" />
+                <path
+                  d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+              </svg>
+            </button>
+          </div>
+          <div class="tone-row">
+            <span class="tone-label">Accent color</span>
+            <div class="swatches" id="accentSwatches">
+              <button type="button" class="swatch" data-accent="green" aria-label="Monitor green"></button>
+              <button type="button" class="swatch" data-accent="blue" aria-label="Clinical blue"></button>
+              <button type="button" class="swatch" data-accent="amber" aria-label="Amber"></button>
+            </div>
+          </div>
+        </section>
+
+        <section class="settings-section" data-section="audio" hidden>
+          <h3 class="settings-heading page-name">Audio</h3>
+          <div class="switch-row">
+            <span class="switch-label">Beep on each beat<span class="switch-sub">a soft tick synced to your live heart
+                rate</span></span>
+            <button type="button" id="soundToggle" class="switch" role="switch" aria-checked="false"
+              aria-label="Beep on each beat">
+              <span class="switch-knob"></span>
+            </button>
+          </div>
+          <div class="tone-row">
+            <span class="tone-label">Tone</span>
+            <select id="toneSelect" aria-label="Beep tone">
+              <option value="soft">Soft tick</option>
+              <option value="monitor">Classic monitor</option>
+              <option value="pulse">Low pulse</option>
+            </select>
+          </div>
+        </section>
+
+        <section class="settings-section" data-section="zones" hidden>
+          <div class="card-head">
+            <h3 class="settings-heading page-name">Heart rate zones</h3>
+            <button type="button" id="zonesReset" class="link-btn">Reset</button>
+          </div>
+          <p class="dialog-hint">Set the BPM where each zone begins. Light is everything below Moderate.</p>
+          <div class="zone-row"><span class="zone-dot" data-zone="light"></span><span
+              class="zone-name">Light</span><span class="zone-range">below Moderate</span></div>
+          <label class="zone-row"><span class="zone-dot" data-zone="moderate"></span><span
+              class="zone-name">Moderate</span><input type="number" id="zoneModerate" min="40" max="220"
+              required /></label>
+          <label class="zone-row"><span class="zone-dot" data-zone="vigorous"></span><span
+              class="zone-name">Vigorous</span><input type="number" id="zoneVigorous" min="40" max="220"
+              required /></label>
+          <label class="zone-row"><span class="zone-dot" data-zone="peak"></span><span
+              class="zone-name">Peak</span><input type="number" id="zonePeak" min="40" max="230" required /></label>
+          <p id="zoneError" class="zone-error" hidden>Values must increase: Moderate &lt; Vigorous &lt; Peak.</p>
+        </section>
+
+        <section class="settings-section" data-section="alerts" hidden>
+          <h3 class="settings-heading page-name">Alerts</h3>
+          <div class="tone-row">
+            <span class="tone-label">Target zone</span>
+            <select id="targetZone" aria-label="Target zone">
+              <option value="none">None</option>
+              <option value="light">Light</option>
+              <option value="moderate">Moderate</option>
+              <option value="vigorous">Vigorous</option>
+              <option value="peak">Peak</option>
+            </select>
+          </div>
+          <div class="switch-row alert-sound-row">
+            <span class="switch-label">Alert sound<span class="switch-sub">chime when you enter or leave the
+                target</span></span>
+            <button type="button" id="alertSoundToggle" class="switch" role="switch" aria-checked="true"
+              aria-label="Alert sound">
+              <span class="switch-knob"></span>
+            </button>
+          </div>
+        </section>
+
+        <section class="settings-section" data-section="access" hidden>
+          <h3 class="settings-heading page-name">Accessibility</h3>
+          <div class="switch-row snap-row">
+            <span class="switch-label">Page snapping<span class="switch-sub">gently settle scrolling onto a page after
+                you stop</span></span>
+            <button type="button" id="snapToggle" class="switch" role="switch" aria-checked="true"
+              aria-label="Page snapping">
+              <span class="switch-knob"></span>
+            </button>
+          </div>
+          <p class="dialog-hint snap-note" id="snapNote">Off by default when your system asks for reduced motion. This
+            switch overrides that.</p>
+          <p class="dialog-hint snap-note snap-locked" id="snapLockedNote" hidden>Not available at this screen size.
+            Page snapping needs a window wider than 560&thinsp;px and at least 620&thinsp;px tall.</p>
+          <div class="switch-row">
+            <span class="switch-label">Background animation<span class="switch-sub">the drawn heartbeat traces behind
+                the pages</span></span>
+            <button type="button" id="bgfxToggle" class="switch" role="switch" aria-checked="true"
+              aria-label="Background animation">
+              <span class="switch-knob"></span>
+            </button>
+          </div>
+          <p class="dialog-hint">Turns off the moving traces and the dot grid. Off by default when your system asks for
+            reduced motion.</p>
+        </section>
+
+        <section class="settings-section" data-section="data" hidden>
+          <h3 class="settings-heading">Export</h3>
+          <p class="dialog-hint">Download this session's readings. Everything stays on your device; nothing is uploaded.
+          </p>
+          <div class="export-row">
+            <button type="button" id="exportCsv" class="btn-outline" disabled>Export CSV</button>
+            <button type="button" id="exportJson" class="btn-outline" disabled>Export JSON</button>
+          </div>
+          <p id="exportEmpty" class="dialog-hint export-empty">No readings yet. Connect a device to record a session.
+          </p>
+
+          <div class="dialog-divider"></div>
+
+          <h3 class="settings-heading">Delete data</h3>
+          <div class="reset-item">
+            <div class="reset-text">
+              <div class="reset-title">Clear session</div>
+              <div class="reset-desc">Empties this session's graphs and zone times. Keeps your device connected and your
+                saved settings.</div>
+            </div>
+            <button type="button" id="clearSession" class="btn-danger-outline" disabled>Clear</button>
+          </div>
+
+          <div class="reset-item">
+            <div class="reset-text">
+              <div class="reset-title">Restore defaults</div>
+              <div class="reset-desc">Full reset. Clears all saved data and reloads a fresh app: the device disconnects,
+                and settings and readings are wiped.</div>
+            </div>
+            <button type="button" id="restoreDefaults" class="btn-danger-outline">Reset</button>
+          </div>
+          <div class="confirm-box" id="restoreConfirm" hidden>
+            <span class="confirm-prompt">Type <b>Delete</b> to confirm</span>
+            <div class="confirm-controls">
+              <input type="text" id="restoreInput" class="confirm-input" autocomplete="off" spellcheck="false"
+                aria-label="Type Delete to confirm" />
+              <button type="button" class="btn-ghost" id="restoreCancel">Cancel</button>
+              <button type="button" class="btn-danger" id="restoreConfirmBtn" disabled>Confirm</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="settings-section" data-section="about" hidden>
+          <h3 class="settings-heading page-name">About</h3>
+          <div class="about-row">
+            <svg class="brand-mark" viewBox="0 0 48 48" width="22" height="22" aria-hidden="true">
+              <path
+                d="M42.49 20.83L36.24 20.83C35.28 20.83 34.17 20.11 33.79 19.23C31.19 13.26 17.1 10.27 15.91 15.9C14.96 20.36 20.92 22.12 24 24C27.08 25.88 33.04 27.64 32.09 32.1C30.9 37.73 16.81 34.74 14.21 28.77C13.83 27.89 12.72 27.17 11.76 27.17L5.51 27.17"
+                fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span class="about-name">Systol</span>
+            <span class="about-version">v<span id="settingsVersion">--</span></span>
+          </div>
+          <p class="dialog-hint">A live heart-rate monitor that runs entirely in your browser. Not a medical device.
+            Everything stays on your device; nothing is uploaded.</p>
+          <p class="about-links"><a href="faq.html" class="foot-link">FAQ &amp; privacy</a></p>
+        </section>
+      </div>
+    </div>
+
+    <div class="dialog-foot">
+      <span class="foot-note">Changes apply instantly</span>
+    </div>
+  </dialog>
+
+  <dialog id="deviceDialog">
+    <div class="dialog-head">
+      <button type="button" id="deviceBack" class="dialog-x dialog-back" aria-label="Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+      </button>
+      <h2 class="dialog-title">Device</h2>
+      <button type="button" id="deviceClose" class="dialog-x dialog-close" aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+      </button>
+    </div>
+    <div class="device-body">
+      <div class="device-logo" id="deviceLogo" data-state="idle">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M2 12h4l2.5-7 4 15 3-9 1.5 3H22" />
+        </svg>
+      </div>
+      <div class="device-name" id="deviceName">No device</div>
+      <div class="device-status" id="deviceStatusText" data-state="idle">Not connected</div>
+      <dl class="device-info" id="deviceInfo" hidden>
+        <div class="dinfo-row">
+          <dt>Device ID</dt>
+          <dd id="devInfoId">--</dd>
+        </div>
+        <div class="dinfo-row" id="devBatteryRow" hidden>
+          <dt>Battery</dt>
+          <dd id="devBattery">--</dd>
+        </div>
+        <div class="dinfo-row">
+          <dt>Service</dt>
+          <dd>Heart Rate · 0x180D</dd>
+        </div>
+        <div class="dinfo-row">
+          <dt>Transport</dt>
+          <dd>Bluetooth LE</dd>
+        </div>
+        <div class="dinfo-row">
+          <dt>App version</dt>
+          <dd>Systol <span id="devVersion">--</span></dd>
+        </div>
+      </dl>
+    </div>
+    <div class="device-foot">
+      <button type="button" id="deviceConnectBtn" class="btn-connect btn-connect-full">
+        <svg class="btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M6.5 6.5 L17.5 17.5 L12 23 L12 1 L17.5 6.5 L6.5 17.5" />
+        </svg>
+        <span id="deviceConnectLabel">Connect device</span>
+      </button>
+    </div>
+  </dialog>
+
+  <!-- ================================================================
+       FOOTER — brand · link columns · base line
+       ================================================================ -->
+  <footer id="footer">
+    <!-- Thin row: the only footer line visible at the last page's rest on
+         flipbook screens — the rest of the footer sits below the fold and
+         scrolling reveals it (the snap engine treats it as a mini page).
+         Hidden on small screens, where the footer renders whole. -->
+    <div class="footer-thin" id="footerThin">
+      <span>Systol · your heartbeat, live in the browser.</span>
+      <span>No cookies 🍪 were smuggled off this device</span>
+    </div>
+    <div class="footer-cols">
+      <div class="footer-brand">
+        <div class="footer-brand-row">
+          <svg class="brand-mark" viewBox="0 0 48 48" width="24" height="24" aria-hidden="true">
+            <path
+              d="M42.49 20.83L36.24 20.83C35.28 20.83 34.17 20.11 33.79 19.23C31.19 13.26 17.1 10.27 15.91 15.9C14.96 20.36 20.92 22.12 24 24C27.08 25.88 33.04 27.64 32.09 32.1C30.9 37.73 16.81 34.74 14.21 28.77C13.83 27.89 12.72 27.17 11.76 27.17L5.51 27.17"
+              fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span class="footer-brand-name">SYSTOL</span>
+        </div>
+        <p class="footer-tagline">A live heart-rate monitor that runs entirely in your browser. Bring your own Bluetooth
+          sensor, and Systol draws the beats.</p>
+      </div>
+      <nav class="footer-col" aria-label="App links">
+        <h3>App</h3>
+        <a href="faq.html" class="foot-link">FAQ</a>
+        <a href="?demo" class="foot-link">Try demo mode</a>
+      </nav>
+      <nav class="footer-col" aria-label="Project links">
+        <h3>Project</h3>
+        <a href="#" class="foot-link soon" title="Coming soon">GitHub</a>
+        <a href="#" class="foot-link soon" title="Coming soon">Report an issue</a>
+      </nav>
+    </div>
+    <div class="footer-base">
+      <span>Web Bluetooth · Heart Rate Service (0x180D) · data never leaves your device</span>
+      <span>© 2026 Systol · not a medical device<span id="footerVersion"></span></span>
+    </div>
+  </footer>
+
+  <!-- ================================================================
+       OVERLAYS — monitor-mode controls · audio hint
+       ================================================================ -->
+  <div id="monitorCtls" class="monitor-ctls" hidden>
+    <div id="monitorBattery" class="battery-chip" hidden title="Device battery">
+      <svg width="14" height="20" viewBox="5 2 14 20" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="7" y="6" width="10" height="15" rx="2" />
+        <path d="M10 3.5h4" />
+      </svg>
+      <span id="monitorBatteryPct">--</span>
+    </div>
+    <button id="monitorMute" class="icon-btn" aria-label="Beep on each beat" aria-pressed="false" title="Beep on/off">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M11 5 6 9H2v6h4l5 4z" />
+        <path class="sound-wave" d="M15.5 8.5a5 5 0 0 1 0 7" />
+        <path class="sound-wave" d="M19 5.5a9 9 0 0 1 0 13" />
+        <path class="sound-x" d="M17 9.5l5 5M22 9.5l-5 5" />
+      </svg>
+    </button>
+    <button id="monitorExit" class="icon-btn" aria-label="Exit monitor mode" title="Exit monitor mode (Esc)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9 3v4a2 2 0 0 1-2 2H3" />
+        <path d="M15 3v4a2 2 0 0 0 2 2h4" />
+        <path d="M9 21v-4a2 2 0 0 0-2-2H3" />
+        <path d="M15 21v-4a2 2 0 0 1 2-2h4" />
+      </svg>
+    </button>
+  </div>
+
+  <button type="button" id="toTop" class="to-top" aria-label="Back to top" title="Back to top">
+    <!-- Hollow banner-chevron (user-supplied path). Non-scaling 2px stroke —
+         intentionally a touch heavier than the header icons' ~1.67px (their
+         stroke-width 2 scaled from a 24 viewBox to 20px), suiting this larger
+         standalone corner control. (10.7.4) -->
+    <svg width="24" height="18" viewBox="0 0 580 426" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M30 396V200L290 30l260 170v196L290 220Z" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" />
+    </svg>
+  </button>
+
+  <div id="audioHint" class="audio-hint" hidden>🔇 Click anywhere to enable sound</div>
+
+  <script src="app.js"></script>
+  <!-- Code-generated background: plotting-paper dots on the dashboard page, a
+       self-building wall of ECG traces on the pages below. Self-contained —
+       injects its own canvas and styles; dials live at the top of the file. -->
+  <script src="systol-bgfx.js" defer></script>
+</body>
+
+</html>
