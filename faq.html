@@ -263,6 +263,12 @@
       which heart-rate zone you're in, and how long you've spent in each zone this session. It's built to feel like a
       bedside monitor, right in a browser tab.</p>
 
+    <h2>Is Systol free?</h2>
+    <p>Yes, completely. There's no charge, no account to create, no sign-in, no subscription, and no paid tier holding
+      features back: everything you see is the whole app. There are no ads, no analytics, and no tracking of any kind,
+      which is straightforward to guarantee because Systol has no server to send anything to. It's open source under the
+      <strong>MIT License</strong>, so you're also free to read the code, modify it, or run your own copy.</p>
+
     <h2>Which browsers work?</h2>
     <p>Systol uses the <strong>Web Bluetooth API</strong>, which only Chromium-based browsers support: <strong>Chrome,
         Edge, Opera, Brave</strong>, and similar, on desktop and Android. Firefox and Safari have chosen not to
@@ -279,6 +285,14 @@
       they keep the data inside their own ecosystem. If a device doesn't advertise <code>0x180D</code>, Systol simply
       can't see its heart rate. Battery is a separate, optional service (<code>0x180F</code>); when a device doesn't
       offer it, the battery indicator just stays hidden.</p>
+
+    <h2>Why don't I see my sensor's battery level?</h2>
+    <p>Because that sensor doesn't report one. Battery is an <strong>optional</strong> Bluetooth service
+      (<code>0x180F</code>), separate from heart rate, and plenty of straps simply don't publish it. Systol asks for it
+      once when you connect: if the sensor answers, the battery chip appears in the header and a <strong>Battery</strong>
+      row appears in the device panel; if it doesn't, both stay hidden rather than showing an empty value. Nothing is
+      wrong with your sensor or your connection, and heart rate works exactly the same either way. If you see a dash
+      (<code>--</code>) instead, that's just the placeholder shown before a device is connected.</p>
 
     <h2>Do I have to pick my device every time I connect?</h2>
     <p>For now, yes: each time you connect, your browser shows its Bluetooth picker and you choose your sensor. That's

@@ -1,8 +1,8 @@
-# Systol
+# Systol — a live Bluetooth heart-rate monitor in your browser
 
 **A live heart-rate monitor that runs entirely in your browser.** Connect a Bluetooth heart-rate sensor to see your live BPM, training zones, a scrolling trace, and session stats; no app to install and no account to create. Your data never leaves your device.
 
-> **Live demo:** _coming soon_ <!-- TODO: add https://jagrit-sharma.github.io/systol/ once GitHub Pages is enabled, then systol.js.org -->
+> **Live demo:** **[jagrit-sharma.github.io/systol](https://jagrit-sharma.github.io/systol/)**; try it with a sensor, or [without one in demo mode](https://jagrit-sharma.github.io/systol/?demo).
 
 Systol is **not a medical device.**
 
@@ -83,6 +83,10 @@ Systol is a **static, client-side app** with no framework, no build system, and 
 - `assets/`: icons and browser/platform logos
 
 It connects over the Web Bluetooth Heart Rate service (`0x180D`), subscribes to the Heart Rate Measurement characteristic (`0x2A37`), and parses each reading per the Bluetooth spec. Battery level is read from the standard Battery service (`0x180F`) when the device exposes it.
+
+## Built with
+
+Plain **JS, HTML, CSS**, the **[Web Bluetooth API](https://developer.mozilla.org/docs/Web/API/Web_Bluetooth_API)** for the sensor connection, **Canvas 2D** for the live trace, the **[Web Audio API](https://developer.mozilla.org/docs/Web/API/Web_Audio_API)** for beat ticks and alerts, and **[Claude Code](https://claude.ai/code)** with Claude Opus 4.8.
 
 ## Future enhancements
 
