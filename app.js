@@ -25,11 +25,19 @@
    1. CONSTANTS · ELEMENTS · STATE
    ================================================================== */
 
-const APP_VERSION = "1.0.0"; // single source of truth (shown in the device dialog)
+const APP_VERSION = "1.0.1"; // single source of truth (shown in the device dialog)
 const WINDOW_SECONDS = 60;   // visible chart history
 const KEEP_SECONDS = 300;    // samples retained for stats/table
 const NO_PULSE_BPM = 25;     // below this, a reading is a "no pulse detected"
                              // REPORT from the sensor (devices send 0), not data
+
+// Demo mode is decided by the URL, so it's known before anything renders.
+// The body attribute is set here (not with the §9 demo engine) because the
+// demo bar it reveals is sticky chrome: setHeaderVar() must be able to measure
+// it on the very first pass, or the flipbook sizes its pages against a header
+// height that's short by the bar.
+const DEMO_MODE = new URLSearchParams(location.search).has("demo");
+if (DEMO_MODE) document.body.dataset.demo = ""; // CSS hook: demo bar + "Exit demo" button
 
 const els = {
   status: document.getElementById("status"),
@@ -1454,8 +1462,6 @@ els.restoreConfirmBtn.addEventListener("click", () => {
 // and the Connect/Disconnect button (which lives here on mobile instead of the
 // header). Its contents mirror the header status, kept in sync by setStatus.
 
-const DEMO_MODE = new URLSearchParams(location.search).has("demo");
-if (DEMO_MODE) document.body.dataset.demo = ""; // CSS hook for the demo-only "Exit demo" button
 const DEVICE_STATUS_LABEL = {
   idle: "Not connected",
   connecting: "Connecting…",
@@ -1702,6 +1708,17 @@ const DEMO_BATTERY = [100, 76, 42, 9, 4, 0];
 
 const demoParam = new URLSearchParams(location.search).get("demo");
 if (demoParam !== null) {
+  // Connecting a real sensor mid-demo would be a data-integrity bug, not a
+  // feature: the demo's interval and the GATT notifications both call
+  // ingestReading(), so scripted and real beats interleave into one chart,
+  // one set of stats, one zone tally, and one export. Lock both entry points
+  // (header + device dialog) and say why — the demo is a closed system.
+  const DEMO_CONNECT_HINT = "Exit demo mode to connect a device";
+  [els.connectBtn, els.deviceConnectBtn].forEach((btn) => {
+    btn.disabled = true;
+    btn.title = DEMO_CONNECT_HINT;
+  });
+
   // ?demo=flatline is an alias for the signal-lost phase. A locked phase just
   // repeats on its own (cycling through its full range).
   // ?demo=nopulse is locked-only (not part of the cycle): the sensor stays
@@ -1759,10 +1776,25 @@ if (demoParam !== null) {
    ================================================================== */
 
 if (!navigator.bluetooth) {
-  els.unsupported.hidden = false;
-  els.connectBtn.disabled = true;
+  // In demo mode the warning is redundant — the user is already running the
+  // thing it would send them to, and stacking a red "unsupported" notice under
+  // the green "you're in demo" one reads as a fault. The demo banner stands
+  // alone; the button and status still reflect the real capability.
+  if (!DEMO_MODE) {
+    els.unsupported.hidden = false;
+    document.querySelector(".device-note-unsupported").hidden = false;
+    placeToc(); // the banner above the dashboard just shifted the hero down
+  }
+  // BOTH entry points: the device dialog is the connect surface on mobile, so
+  // leaving its button live here would offer a picker the browser can't open.
+  const UNSUPPORTED_HINT = "This browser doesn't support Web Bluetooth";
+  [els.connectBtn, els.deviceConnectBtn].forEach((btn) => {
+    btn.disabled = true;
+    // Demo already set a title, and its "exit demo" advice is the actionable
+    // one — don't overwrite it with the browser caveat the demo made moot.
+    if (!DEMO_MODE) btn.title = UNSUPPORTED_HINT;
+  });
   setStatus("Web Bluetooth unavailable", "error");
-  placeToc(); // the banner above the dashboard just shifted the hero down
 }
 
 // Installed-app contexts (PWA/TWA/WebView → display-mode: standalone) get

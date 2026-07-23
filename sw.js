@@ -17,7 +17,7 @@
 
 "use strict";
 
-const VERSION = "1.0.0";           // keep in step with APP_VERSION (app.js §1)
+const VERSION = "1.0.1";           // keep in step with APP_VERSION (app.js §1)
 const CACHE = `systol-v${VERSION}`;
 
 // The complete app shell. Relative paths: the site is served from a
