@@ -1687,6 +1687,38 @@ footer {
 @media (prefers-reduced-motion: reduce) { .to-top { transition: none; animation: none; } }
 
 /* Monitor-mode floating controls (battery, mute, exit). */
+/* Brand watermark — only ever visible in monitor mode (the header, and with it
+   the real brand, is hidden there). Mirrors the header brand's top-left
+   placement; muted so it identifies the app without competing with the BPM. */
+.monitor-brand { display: none; }
+
+body.monitor .monitor-brand {
+  position: fixed;
+  top: 18px;
+  left: 20px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--ink);
+  opacity: 0.4;
+  pointer-events: none; /* never intercepts a tap meant for the chart */
+}
+
+.monitor-brand-name {
+  font-family: var(--wordmark);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+}
+
+/* Mobile and short viewports: monitor mode is already tight there, and the
+   watermark would crowd the controls opposite it. Identity is a nice-to-have;
+   the readout isn't. Gates are the canonical 560 and 619 (see GATES, §1). */
+@media (max-width: 560px), (max-height: 619px) {
+  body.monitor .monitor-brand { display: none; }
+}
+
 .monitor-ctls {
   position: fixed;
   top: 18px;
