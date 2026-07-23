@@ -459,6 +459,23 @@ main {
   color: var(--ink);
 }
 
+/* Accent-colored so the way out of the banner is the one thing that draws
+   the eye inside it. */
+.banner a {
+  color: var(--trace);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.banner a:hover { filter: brightness(1.15); }
+
+.banner a:focus-visible {
+  outline: 2px solid var(--trace);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* --- main · flipbook pages ---
    Each .page is one full-viewport "page" of the vertical flipbook, minus
    the sticky header that stays overlaid on all of them. Page 1 is the
