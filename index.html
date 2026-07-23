@@ -24,7 +24,12 @@
        .ico is the fallback for those that don't. -->
   <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml" />
   <link rel="icon" href="assets/icons/favicon.ico" sizes="16x16 32x32 48x48" />
-  <link rel="apple-touch-icon" href="assets/icons/favicon.svg" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
+
+  <!-- PWA: installable, and offline once the service worker below caches the
+       shell. theme-color paints the OS/browser UI around the app window. -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#000000" />
 
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -780,6 +785,19 @@
        self-building wall of ECG traces on the pages below. Self-contained —
        injects its own canvas and styles; dials live at the top of the file. -->
   <script src="systol-bgfx.js" defer></script>
+  <!-- Service worker: caches the app shell so Systol keeps working offline,
+       refreshes included. Registered after load so it never competes with
+       first paint, and failure is non-fatal — the app runs fine without it,
+       just online-only. file:// has no SW support, hence the protocol check. -->
+  <script>
+    if ("serviceWorker" in navigator && location.protocol !== "file:") {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.register("sw.js").catch(function (err) {
+          console.warn("Service worker registration failed:", err);
+        });
+      });
+    }
+  </script>
 </body>
 
 </html>

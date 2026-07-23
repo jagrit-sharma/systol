@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Systol MASKABLE icon (512 export).
+       Android crops this to a circle/squircle/rounded square depending on the
+       launcher, so the mark sits inside the centre 80% safe zone (a 410px
+       circle) and looks deliberately over-padded as a flat square. Stroke 3.6, matching the favicon.
+
+       -->
+  <rect x="0" y="0" width="512" height="512" fill="#000000" fill-opacity="1"/>
+  <g transform="translate(128 128) scale(5.3333)">
+    <path d="M42.49 20.83L36.24 20.83C35.28 20.83 34.17 20.11 33.79 19.23C31.19 13.26 17.1 10.27 15.91 15.9C14.96 20.36 20.92 22.12 24 24C27.08 25.88 33.04 27.64 32.09 32.1C30.9 37.73 16.81 34.74 14.21 28.77C13.83 27.89 12.72 27.17 11.76 27.17L5.51 27.17"
+          fill="none" stroke="#16b050" stroke-width="3.6" stroke-opacity="1"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
