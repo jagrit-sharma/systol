@@ -291,6 +291,7 @@ header {
 }
 header.scrolled { border-bottom-color: var(--grid); } /* hairline seam appears on scroll */
 
+
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; cursor: pointer; }
 .brand:focus-visible { outline: 2px solid var(--trace); outline-offset: 4px; border-radius: 6px; }
 .brand h1 {
@@ -474,6 +475,41 @@ main {
   outline: 2px solid var(--trace);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* Demo variant — accent instead of the danger tint, because demo is a mode the
+   user chose, not a fault. Rendered only in demo mode (body[data-demo]), and
+   never in monitor mode, which hides every other piece of chrome too. */
+.banner-demo { display: none; }
+
+body[data-demo] .banner-demo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: color-mix(in srgb, var(--trace) 11%, transparent);
+  border-color: color-mix(in srgb, var(--trace) 55%, transparent);
+}
+
+body.monitor .banner-demo { display: none; }
+
+.banner-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--trace);
+  flex: none;
+  /* Slow pulse: alive, but far calmer than the status LED — a standing
+     notice, not an event. */
+  animation: banner-dot-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes banner-dot-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner-dot { animation: none; }
 }
 
 /* --- main · flipbook pages ---
@@ -1425,6 +1461,35 @@ dialog h2 { font-size: 18px; letter-spacing: 0.02em; }
 }
 .device-foot { margin-top: auto; }
 .btn-connect-full { width: 100%; justify-content: center; padding: 13px; font-size: 15px; }
+
+/* Why the Connect button below is dead: demo mode, or a browser without Web
+   Bluetooth. A disabled button can't show its own tooltip, and tooltips don't
+   exist on touch at all, so the reason is stated in the dialog itself. */
+.device-foot-note {
+  margin: 0 0 10px;
+  font-size: 12px; /* the 12px register (10.7.1) — not a new size */
+  line-height: 1.5;
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+/* Demo note: shown only in demo mode. The unsupported note is toggled by JS
+   (app.js §10 boot) since only JS knows whether the API exists. */
+.device-note-demo { display: none; }
+body[data-demo] .device-note-demo { display: block; }
+
+.device-foot-note a {
+  color: var(--trace);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.device-foot-note a:focus-visible {
+  outline: 2px solid var(--trace);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
 
 /* --- dialogs · mobile ---
    The modal becomes a full-screen sheet; settings becomes a drill-down —

@@ -132,6 +132,17 @@
       or <a href="?demo">try the demo instead</a>.
     </div>
 
+    <!-- Demo notice. Same banner slot and structure as the unsupported message
+         above, in the accent instead of the danger tint: demo is a mode, not a
+         fault. Shown via body[data-demo] (app.js §1) — no JS toggle needed. -->
+    <div class="banner banner-demo">
+      <span class="banner-dot" aria-hidden="true"></span>
+      <span>
+        <strong>Demo mode</strong> · these readings are simulated, no sensor is
+        connected. <a href="index.html">Exit demo</a>.
+      </span>
+    </div>
+
     <!-- PAGE 1 · DASHBOARD container: hero + dash-body (chart → zones →
          table). dash-body is one unit so the whole stack can be re-anchored
          (e.g. gutter layouts) without touching its pieces. -->
@@ -668,6 +679,14 @@
       </dl>
     </div>
     <div class="device-foot">
+      <!-- Why the button below may be dead. A disabled control doesn't fire
+           hover events, so its own title would never show; these lines carry
+           the reason instead, and work on touch where tooltips don't. Each is
+           revealed by its own state hook, so only the relevant one appears. -->
+      <p class="device-foot-note device-note-demo">Connecting is unavailable in demo mode.
+        <a href="index.html">Exit demo</a> to use a real sensor.</p>
+      <p class="device-foot-note device-note-unsupported" hidden>This browser doesn't support
+        Web Bluetooth. Use Chrome, Edge, or another Chromium-based browser.</p>
       <button type="button" id="deviceConnectBtn" class="btn-connect btn-connect-full">
         <svg class="btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
